@@ -1,4 +1,4 @@
-English README is [here](https://github.com/SlashNephy/Tweetstorm/blob/master/README.md).  
+English README is [here](https://github.com/SlashNephy/Tweetstorm/blob/master/README_EN.md).  
 
 # Tweetstorm
 Twitter UserStream APIの簡単な代替実装  
