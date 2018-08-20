@@ -60,7 +60,8 @@ vi config.json
 ```
 
 サードパーティクライアントでエンドポイントを上書きして使用する際には 自己署名証明書等が必要です。  
-iOSでは feather で動作を確認しました。
+iOSでは feather で動作を確認しました。[画面収録したやつ](https://www.youtube.com/watch?v=XJoFay0Og1w)
+
 
 
 ## ライセンス
