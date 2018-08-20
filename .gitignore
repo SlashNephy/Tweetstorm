@@ -1,0 +1,8 @@
+.idea/
+.gradle/
+gradle/
+out/
+.DS_Store
+
+logs/
+config.json
