@@ -5,6 +5,11 @@ val ktorVersion = "0.9.4-alpha-2"
 
 plugins {
     kotlin("jvm") version "1.2.60"
+    application
+}
+
+application {
+    mainClassName = "jp.nephy.tweetstorm.AppKt"
 }
 
 group = "jp.nephy"
