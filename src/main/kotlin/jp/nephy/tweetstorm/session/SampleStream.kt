@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 
 private val sampleStatus = jsonObject(
         "created_at" to "",
-        "id" to 1530294576597102593,
-        "id_str" to "1530294576597102593",
+        "id" to 1030122500561166336,
+        "id_str" to "1030122500561166336",
         "text" to "",
         "truncated" to false,
         "entities" to jsonObject(
@@ -66,9 +66,9 @@ private val sampleStatus = jsonObject(
                 "profile_background_image_url" to "http://abs.twimg.com/images/themes/theme1/bg.png",
                 "profile_background_image_url_https" to "https://abs.twimg.com/images/themes/theme1/bg.png",
                 "profile_background_tile" to false,
-                "profile_image_url" to "http://pbs.twimg.com/profile_images/911819175550582784/UVZ3ay-0_normal.jpg",
-                "profile_image_url_https" to "https://pbs.twimg.com/profile_images/911819175550582784/UVZ3ay-0_normal.jpg",
-                "profile_banner_url" to "https://pbs.twimg.com/profile_banners/911815894384308224/1524998999",
+                "profile_image_url" to "http://pbs.twimg.com/profile_images/942858479592554497/BbazLO9L_normal.jpg",
+                "profile_image_url_https" to "https://pbs.twimg.com/profile_images/942858479592554497/BbazLO9L_normal.jpg",
+                "profile_banner_url" to "https://pbs.twimg.com/profile_banners/6253282/1497491515/1500x500",
                 "profile_link_color" to "FFFFFF",
                 "profile_sidebar_border_color" to "000000",
                 "profile_sidebar_fill_color" to "000000",
