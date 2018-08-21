@@ -6,26 +6,31 @@ import jp.nephy.jsonkt.JsonKt
 import jp.nephy.jsonkt.JsonModel
 import jp.nephy.jsonkt.jsonObject
 import java.io.Writer
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 abstract class Stream(private val writer: Writer, query: Parameters) {
     companion object {
         private const val delimiter = "\r\n"
     }
 
+    private val lock = ReentrantLock()
     private val delimitedByLength = query["delimited"] == "length"
     val stringifyFriendIds = query["stringify_friend_ids"].orEmpty().toBoolean()
-    val repliesAll = query["replies"] == "all"
 
     abstract fun handle()
 
     private fun send(content: String) {
         val text = "${content.trim().escapeHtml().escapeUnicode()}$delimiter"
-        if (delimitedByLength) {
-            writer.write("${text.length}$delimiter")
-            writer.flush()
+        lock.withLock {
+            if (delimitedByLength) {
+                writer.write("${text.length}$delimiter$text")
+                writer.flush()
+            } else {
+                writer.write(text)
+                writer.flush()
+            }
         }
-        writer.write(text)
-        writer.flush()
     }
 
     fun send(vararg pairs: Pair<String, Any?>) {
@@ -36,13 +41,15 @@ abstract class Stream(private val writer: Writer, query: Parameters) {
         send(JsonKt.toJsonString(json))
     }
 
-    fun send(model: JsonModel) {
-        send(model.json)
+    fun send(payload: JsonModel) {
+        send(payload.json)
     }
 
     fun heartbeat() {
-        writer.write("\r\n")
-        writer.flush()
+        lock.withLock {
+            writer.write("\r\n")
+            writer.flush()
+        }
     }
 }
 
