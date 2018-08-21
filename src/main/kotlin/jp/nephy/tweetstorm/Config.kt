@@ -22,8 +22,6 @@ class Config(override val json: JsonObject): JsonModel {
     val accounts by json.byModelList<Account>()
 
     class Account(override val json: JsonObject): JsonModel {
-        val debug by json.byBool { false }
-        val markVia by json.byBool("mark_via") { true }
         val id by json.byLong
         val sn by json.byString
         val ck by json.byString
@@ -31,5 +29,12 @@ class Config(override val json: JsonObject): JsonModel {
         val at by json.byString
         val ats by json.byString
         val listId by json.byNullableLong("list_id")
+
+        val debug by json.byBool { false }
+        val markVia by json.byBool("mark_via") { false }
+        val listInterval by json.byInt("list_timeline_refresh_sec") { 3 }
+        val homeInterval by json.byInt("home_timeline_refresh_sec") { 90 }
+        val userInterval by json.byInt("user_timeline_refresh_sec") { 3 }
+        val mentionInterval by json.byInt("mention_timeline_refresh_sec") { 45 }
     }
 }
