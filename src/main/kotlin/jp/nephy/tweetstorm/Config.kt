@@ -32,6 +32,7 @@ class Config(override val json: JsonObject): JsonModel {
 
         val debug by json.byBool { false }
         val markVia by json.byBool("mark_via") { false }
+        val markVote by json.byBool("mark_vote") { false }
         val listInterval by json.byInt("list_timeline_refresh_sec") { 3 }
         val homeInterval by json.byInt("home_timeline_refresh_sec") { 90 }
         val userInterval by json.byInt("user_timeline_refresh_sec") { 3 }
