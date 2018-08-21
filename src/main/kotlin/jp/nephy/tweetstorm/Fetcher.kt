@@ -123,48 +123,52 @@ class Fetcher {
         }
 
         private fun timeline(sleepSec: Int, source: (lastId: Long?) -> ListAction<Status>) {
-            var lastId: Long? = null
-            while (streams.isNotEmpty()) {
-                try {
-                    val timeline = source(lastId).complete()
-                    if (timeline.result.isNotEmpty()) {
-                        // For compatibility
-                        timeline.result.forEach {
-                            it.json["text"] = it.json["full_text"].string
+            while (true) {
+                var lastId: Long? = null
+                while (streams.isNotEmpty()) {
+                    try {
+                        val timeline = source(lastId).complete()
+                        if (timeline.result.isNotEmpty()) {
+                            // For compatibility
+                            timeline.result.forEach {
+                                it.json["text"] = it.json["full_text"].string
+                            }
+
+                            if (lastId != null) {
+                                timeline.result.reversed().forEach {
+                                    if (account.markVia) {
+                                        it.json["source"] = it.source.value.replace("</a>", " [Tweetstorm]</a>")
+                                    }
+                                    sendAll(it)
+                                }
+                            }
+
+                            lastId = timeline.result.first().id
                         }
 
-                        if (lastId != null) {
-                            timeline.result.reversed().forEach {
-                                if (account.markVia) {
-                                    it.json["source"] = it.source.value.replace("</a>", " [Tweetstorm]</a>")
-                                }
-                                sendAll(it)
+                        if (timeline.rateLimit.hasLimit) {
+                            val duration = Duration.between(Instant.now(), timeline.rateLimit.resetAt!!.toInstant())
+                            if (timeline.rateLimit.remaining!! < 2) {
+                                logger.warn { "[Timeline] Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.rateLimit.resetAt})" }
+                                TimeUnit.SECONDS.sleep(duration.seconds)
+                            } else if (timeline.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
+                                logger.warn { "[Timeline] Rate limit: API calls (/${timeline.request.url().pathSegments().joinToString("/")}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.rateLimit.remaining}/${timeline.rateLimit.limit}, Reset at ${timeline.rateLimit.resetAt})" }
+                                TimeUnit.SECONDS.sleep(10)
                             }
                         }
-
-                        lastId = timeline.result.first().id
-                    }
-
-                    if (timeline.rateLimit.hasLimit) {
-                        val duration = Duration.between(Instant.now(), timeline.rateLimit.resetAt!!.toInstant())
-                        if (timeline.rateLimit.remaining!! < 2) {
-                            logger.warn { "[Timeline] Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.rateLimit.resetAt})" }
-                            TimeUnit.SECONDS.sleep(duration.seconds)
-                        } else if (timeline.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
-                            logger.warn { "[Timeline] Rate limit: API calls (/${timeline.request.url().pathSegments().joinToString("/")}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.rateLimit.remaining}/${timeline.rateLimit.limit}, Reset at ${timeline.rateLimit.resetAt})" }
+                    } catch (e: Exception) {
+                        // Rate limit exceeded
+                        if (e is PenicillinException && e.error?.code == 88) {
                             TimeUnit.SECONDS.sleep(10)
+                        } else {
+                            logger.error(e) { "[Timeline] An error occurred while getting timeline for @${account.sn}." }
                         }
+                    } finally {
+                        TimeUnit.SECONDS.sleep(sleepSec.toLong())
                     }
-                } catch (e: Exception) {
-                    // Rate limit exceeded
-                    if (e is PenicillinException && e.error?.code == 88) {
-                        TimeUnit.SECONDS.sleep(10)
-                    } else {
-                        logger.error(e) { "[Timeline] An error occurred while getting timeline for @${account.sn}." }
-                    }
-                } finally {
-                    TimeUnit.SECONDS.sleep(sleepSec.toLong())
                 }
+
+                TimeUnit.SECONDS.sleep(5)
             }
         }
 
