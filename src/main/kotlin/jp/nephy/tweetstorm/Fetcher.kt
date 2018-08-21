@@ -2,10 +2,12 @@ package jp.nephy.tweetstorm
 
 import io.ktor.util.cio.ChannelWriteException
 import jp.nephy.jsonkt.JsonModel
+import jp.nephy.jsonkt.contains
 import jp.nephy.jsonkt.set
 import jp.nephy.jsonkt.string
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.PenicillinException
+import jp.nephy.penicillin.model.CardState
 import jp.nephy.penicillin.model.Status
 import jp.nephy.penicillin.request.ListAction
 import jp.nephy.tweetstorm.session.AuthenticatedStream
@@ -36,10 +38,16 @@ class Fetcher {
             application(account.ck, account.cs)
             token(account.at, account.ats)
         }
+        private val timelineOptions = if (account.markVote) {
+            arrayOf("include_entities" to "true", "include_rts" to "true", "tweet_mode" to "extended", "include_cards" to "1", "cards_platform" to "iPhone-13")
+        } else {
+            arrayOf("include_entities" to "true", "include_rts" to "true", "tweet_mode" to "extended")
+        }
         private val streams = CopyOnWriteArrayList<AuthenticatedStream>().also {
             it.add(initialStream)
         }
 
+        @Synchronized
         fun bind(stream: AuthenticatedStream) {
             if (stream !in streams) {
                 streams.add(stream)
@@ -48,6 +56,7 @@ class Fetcher {
             }
         }
 
+        @Synchronized
         fun unbind(stream: AuthenticatedStream) {
             if (stream in streams) {
                 streams.remove(stream)
@@ -56,16 +65,40 @@ class Fetcher {
         }
 
         private fun sendAll(payload: JsonModel) {
-            for (it in streams) {
-                try {
-                    it.send(payload)
-                } catch (e: ChannelWriteException) {
-                    unbind(it)
-                } catch (e: Exception) {
-                    logger.error(e) { "A Stream failed sending payload. (@${account.sn})" }
-                    continue
+            executor.execute {
+                for (it in streams) {
+                    executor.execute {
+                        try {
+                            it.send(payload)
+                        } catch (e: ChannelWriteException) {
+                            unbind(it)
+                        } catch (e: Exception) {
+                            logger.error(e) { "A Stream failed sending payload. (@${account.sn})" }
+                        }
+                    }
                 }
             }
+        }
+
+        private fun Status.postProcess() {
+            if (account.markVia) {
+                json["source"] = source.value.replace("</a>", " [Tweetstorm]</a>")
+            }
+            if (account.markVote && json.contains("card")) {
+                try {
+                    val card = CardState(json)
+                    json["full_text"] = buildString {
+                        appendln(json["full_text"].string)
+                        appendln("[Vote] ${card.data.minutes} mins")
+                        append(card.data.choices.map { "${it.key}: ${it.value} Pt" }.joinToString(" / "))
+                    }
+                } catch (e: Exception) {
+                    logger.error(e) { "[Timeline] Vote element could not be extracted." }
+                }
+            }
+
+            // For compatibility
+            json["text"] = json["full_text"].string
         }
 
         init {
@@ -100,25 +133,25 @@ class Fetcher {
 
         private fun listTimeline() {
             timeline(account.listInterval) {
-                client.list.timeline(listId = account.listId, count = 200, sinceId = it, includeRTs = true, includeEntities = true, options = *arrayOf("tweet_mode" to "extended"))
+                client.list.timeline(listId = account.listId, count = 200, sinceId = it, options = *timelineOptions)
             }
         }
 
         private fun homeTimeline() {
             timeline(account.homeInterval) {
-                client.timeline.home(count = 200, sinceId = it, includeEntities = true, options = *arrayOf("tweet_mode" to "extended"))
+                client.timeline.home(count = 200, sinceId = it, options = *timelineOptions)
             }
         }
 
         private fun userTimeline() {
             timeline(account.userInterval) {
-                client.timeline.user(count = 200, sinceId = it, includeRTs = true, options = *arrayOf("tweet_mode" to "extended"))
+                client.timeline.user(count = 200, sinceId = it, options = *timelineOptions)
             }
         }
 
         private fun mentionTimeline() {
             timeline(account.mentionInterval) {
-                client.timeline.mention(count = 200, sinceId = it, includeEntities = true, options = *arrayOf("tweet_mode" to "extended"))
+                client.timeline.mention(count = 200, sinceId = it, options = *timelineOptions)
             }
         }
 
@@ -129,16 +162,9 @@ class Fetcher {
                     try {
                         val timeline = source(lastId).complete()
                         if (timeline.result.isNotEmpty()) {
-                            // For compatibility
-                            timeline.result.forEach {
-                                it.json["text"] = it.json["full_text"].string
-                            }
-
                             if (lastId != null) {
                                 timeline.result.reversed().forEach {
-                                    if (account.markVia) {
-                                        it.json["source"] = it.source.value.replace("</a>", " [Tweetstorm]</a>")
-                                    }
+                                    it.postProcess()
                                     sendAll(it)
                                 }
                             }
