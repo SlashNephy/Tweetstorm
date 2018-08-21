@@ -3,6 +3,7 @@ package jp.nephy.tweetstorm
 import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
+import io.ktor.features.CallLogging
 import io.ktor.features.XForwardedHeadersSupport
 import io.ktor.features.origin
 import io.ktor.http.ContentType
@@ -18,6 +19,7 @@ import io.ktor.util.toMap
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.session.SampleStream
 import mu.KotlinLogging
+import org.slf4j.event.Level
 import java.util.logging.LogManager
 
 val logger = KotlinLogging.logger("Tweetstorm")
@@ -25,6 +27,10 @@ val config = Config.load()
 val fetcher = Fetcher()
 
 fun Application.module() {
+    install(CallLogging) {
+        level = Level.INFO
+    }
+
     install(XForwardedHeadersSupport)
 
     install(Routing) {
@@ -51,7 +57,6 @@ fun Application.module() {
 
 fun main(args: Array<String>) {
     LogManager.getLogManager().reset()
-    val config = Config.load()
 
     embeddedServer(Netty, host = config.host, port = config.port, configure = {
         responseWriteTimeoutSeconds = 60
