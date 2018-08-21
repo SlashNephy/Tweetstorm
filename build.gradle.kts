@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.Coroutines
 val ktorVersion = "0.9.4-alpha-2"
 
 plugins {
-    kotlin("jvm") version "1.2.60"
+    kotlin("jvm") version "1.2.61"
     application
 }
 
