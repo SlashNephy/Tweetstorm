@@ -53,5 +53,7 @@ fun main(args: Array<String>) {
     LogManager.getLogManager().reset()
     val config = Config.load()
 
-    embeddedServer(Netty, host = config.host, port = config.port, module = Application::module).start(wait = true)
+    embeddedServer(Netty, host = config.host, port = config.port, configure = {
+        responseWriteTimeoutSeconds = 60
+    }, module = Application::module).start(wait = true)
 }
