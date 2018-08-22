@@ -40,7 +40,17 @@ Tweetstormは以下のJSONデータを提供します。
 
 ## セットアップ
 [Wiki](https://github.com/SlashNephy/Tweetstorm/wiki/%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97)に移動しました。  
-iOSでは feather で動作を確認しました。[画面収録したもの](https://www.youtube.com/watch?v=XJoFay0Og1w)  
+
+## 動作確認
+### iOS
+- The World (v3.7)
+- [feather (v3.11.0)](https://www.youtube.com/watch?v=XJoFay0Og1w)
+  - 最新バージョンではストリーミング機能が削除されているためTweetstormは使用できません。
+- Hel1um for iOS (v0.5.2)
+  - 同上
+### Windows
+- Krile (v3.6.2)
+  - デフォルトのCK/CSでは機能が制限されているため自分でCK/CSを設定する必要があります。
 
 ## ライセンス
 このプロジェクトは MITライセンスで提供されます。
