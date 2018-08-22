@@ -44,6 +44,23 @@ fun Headers.parseAuthorizationHeader(method: HttpMethod, url: String, query: Par
     }
 }
 
+fun Headers.parseAuthorizationHeaderSimple(): Config.Account? {
+    val authorization = get(HttpHeaders.Authorization) ?: return null
+    if (!authorization.startsWith("OAuth")) {
+        return null
+    }
+
+    val authorizationData = authorization.removePrefix("OAuth").split(",").map {
+        it.trim().split("=", limit = 2)
+    }.map {
+        it.first() to URLDecoder.decode(it.last(), Charsets.UTF_8.name()).removeSurrounding("\"")
+    }.toMap()
+
+    val id = authorizationData["oauth_token"]?.split("-")?.firstOrNull()?.toLongOrNull() ?: return null
+    println(id)
+    return config.accounts.find { it.id == id }
+}
+
 private fun String.toURLEncode(): String {
     return URLEncoder.encode(this@toURLEncode, "UTF-8").replace("%7E", "~").map {
         when (it) {

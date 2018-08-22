@@ -22,11 +22,11 @@ import mu.KotlinLogging
 import org.slf4j.event.Level
 import java.util.logging.LogManager
 
-val logger = KotlinLogging.logger("Tweetstorm")
 val config = Config.load()
 val fetcher = Fetcher()
 
 fun Application.module() {
+    val logger = KotlinLogging.logger("Tweetstorm")
     install(CallLogging) {
         level = Level.INFO
     }
@@ -39,15 +39,18 @@ fun Application.module() {
         }
 
         get("/1.1/user.json") {
-            val account = call.request.headers.parseAuthorizationHeader(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
-                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            val account = if (!config.skipAuth) {
+                call.request.headers.parseAuthorizationHeader(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
+            } else {
+                call.request.headers.parseAuthorizationHeaderSimple()
+            } ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
             call.respondWrite(ContentType.Application.Json, HttpStatusCode.OK) {
+                logger.info { "Account: ${account.displayName} (ID: ${account.id}) connected from ${call.request.origin.remoteHost} with parameter ${call.request.queryParameters.toMap()}." }
                 if (account.debug) {
-                    logger.warn { "Unknown user connected from ${call.request.origin.remoteHost} with parameter ${call.request.queryParameters.toMap()}." }
+                    logger.info { "Account: ${account.displayName} (ID: ${account.id}) connected to debug stream." }
                     SampleStream(this, call.request.queryParameters)
                 } else {
-                    logger.info { "Account: @${account.sn} (ID: ${account.id}) connected from ${call.request.origin.remoteHost} with parameter ${call.request.queryParameters.toMap()}." }
                     AuthenticatedStream(this, call.request.queryParameters, account)
                 }.handle()
             }
