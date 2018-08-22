@@ -3,6 +3,19 @@ English README is [here](https://github.com/SlashNephy/Tweetstorm/blob/master/RE
 # Tweetstorm
 Twitter UserStream APIの簡単な代替実装  
 
+```
+                         User Stream API                            Twitter API
+                       +--------------------+    +------------+     +---------+
+ 3rd Party Client A -> | GET /1.1/user.json | -> |            | <-> | Tweets  |
+                       +--------------------+    |            |     +---------+
+                       +--------------------+    |            | <-> | Events  |
+ 3rd Party Client B -> | GET /1.1/user.json | -> | Tweetstorm |     +---------+
+                       +--------------------+    |            | <-> | Friends |
+                       +--------------------+    |            |     +---------+
+ 3rd Party Client C -> | GET /1.1/user.json | -> |            | <-> |  etc... |
+                       +--------------------+    +------------+     +---------+
+```
+
 ## 概要
 Tweetstormの目的は2018/8/23に完全停止する(した)のUserStream APIを再現することです。  
 Tweetstormは以下のJSONデータを提供します。  
@@ -30,7 +43,7 @@ Tweetstormは以下のJSONデータを提供します。
   
 ## セットアップ
 [こっち](https://github.com/SlashNephy/Tweetstorm/wiki/%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97)に移動しました。  
-iOSでは feather で動作を確認しました。[画面収録したやつ](https://www.youtube.com/watch?v=XJoFay0Og1w)  
+iOSでは feather で動作を確認しました。[画面収録したもの](https://www.youtube.com/watch?v=XJoFay0Og1w)  
 
 ## ライセンス
 このプロジェクトは MITライセンスで提供されます。
