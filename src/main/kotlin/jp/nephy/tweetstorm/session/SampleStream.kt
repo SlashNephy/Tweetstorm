@@ -1,10 +1,7 @@
 package jp.nephy.tweetstorm.session
 
 import io.ktor.http.Parameters
-import jp.nephy.jsonkt.jsonArray
-import jp.nephy.jsonkt.jsonObject
-import jp.nephy.jsonkt.long
-import jp.nephy.jsonkt.set
+import jp.nephy.jsonkt.*
 import java.io.Writer
 import java.text.SimpleDateFormat
 import java.util.*
@@ -104,12 +101,6 @@ private val sampleStatus = jsonObject(
 
 class SampleStream(writer: Writer, query: Parameters): Stream(writer, query) {
     override fun handle() {
-        if (stringifyFriendIds) {
-            send("friends_str" to jsonArray())
-        } else {
-            send("friends" to jsonArray())
-        }
-
         val formatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH)
         formatter.timeZone = TimeZone.getTimeZone("UTC")
         while (true) {
@@ -118,7 +109,7 @@ class SampleStream(writer: Writer, query: Parameters): Stream(writer, query) {
             sampleStatus["id"] = sampleStatus["id"].long + 1
             sampleStatus["id_str"] = sampleStatus["id"].long.toString()
 
-            send(sampleStatus)
+            send(JsonKt.toJsonString(sampleStatus))
             TimeUnit.SECONDS.sleep(3)
         }
     }

@@ -1,10 +1,6 @@
 package jp.nephy.tweetstorm.session
 
-import com.google.gson.JsonObject
 import io.ktor.http.Parameters
-import jp.nephy.jsonkt.JsonKt
-import jp.nephy.jsonkt.JsonModel
-import jp.nephy.jsonkt.jsonObject
 import java.io.Writer
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -20,7 +16,7 @@ abstract class Stream(private val writer: Writer, query: Parameters) {
 
     abstract fun handle()
 
-    private fun send(content: String) {
+    fun send(content: String) {
         val text = "${content.trim().escapeHtml().escapeUnicode()}$delimiter"
         lock.withLock {
             if (delimitedByLength) {
@@ -33,21 +29,9 @@ abstract class Stream(private val writer: Writer, query: Parameters) {
         }
     }
 
-    fun send(vararg pairs: Pair<String, Any?>) {
-        send(jsonObject(*pairs))
-    }
-
-    fun send(json: JsonObject) {
-        send(JsonKt.toJsonString(json))
-    }
-
-    fun send(payload: JsonModel) {
-        send(payload.json)
-    }
-
     fun heartbeat() {
         lock.withLock {
-            writer.write("\r\n")
+            writer.write(delimiter)
             writer.flush()
         }
     }
