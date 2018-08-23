@@ -29,7 +29,7 @@
         </filter>
     </appender>
 
-    <logger name="Tweetstorm" level="DEBUG" />
+    <logger name="Tweetstorm" level="INFO" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
