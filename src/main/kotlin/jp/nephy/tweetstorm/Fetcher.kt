@@ -7,17 +7,14 @@ class Fetcher {
     private val managers = CopyOnWriteArrayList<TaskManager>()
 
     fun start(stream: AuthenticatedStream) {
-        val manager = managers.find { it.account.id == stream.account.id }
-        if (manager == null) {
-            managers.add(
-                    TaskManager(stream.account, stream).apply {
-                        startTasks()
-                        startTargetedTasks(stream)
-                    }
-            )
-            return
+        val manager = managers.find { it.account.id == stream.account.id }?.also {
+            it.register(stream)
+        } ?: TaskManager(stream).also {
+            it.startTasks()
+            it.startTargetedTasks(stream)
+            managers.add(it)
         }
 
-        manager.bind(stream)
+        manager.wait(stream)
     }
 }

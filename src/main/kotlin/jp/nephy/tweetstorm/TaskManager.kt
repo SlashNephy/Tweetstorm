@@ -6,14 +6,18 @@ import jp.nephy.jsonkt.JsonKt
 import jp.nephy.jsonkt.JsonModel
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.penicillin.PenicillinClient
+import jp.nephy.penicillin.PenicillinException
+import jp.nephy.penicillin.TwitterApiError
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
 import mu.KotlinLogging
+import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class TaskManager(val account: Config.Account, initialStream: AuthenticatedStream) {
+class TaskManager(initialStream: AuthenticatedStream) {
+    val account = initialStream.account
     private val logger = KotlinLogging.logger("Tweetstorm.TaskManager (${account.displayName})")
     private val executor = Executors.newCachedThreadPool()
     val twitter = PenicillinClient.build {
@@ -33,7 +37,7 @@ class TaskManager(val account: Config.Account, initialStream: AuthenticatedStrea
         if (account.listId != null) {
             try {
                 twitter.list.member(listId = account.listId, userId = account.id).complete()
-            } catch (e: Exception) {
+            } catch (e: PenicillinException) {
                 // if list does not contain me
                 it.add(UserTimeline(this))
                 it.add(MentionTimeline(this))
@@ -43,6 +47,7 @@ class TaskManager(val account: Config.Account, initialStream: AuthenticatedStrea
         // it.add(DirectMessage(this))
         // it.add(Activity(this))
         // it.add(Delete(this))
+        it.add(Heartbeat(this))
     }
     private val targetedTasks: List<TargetedFetchTask<*>> = mutableListOf<TargetedFetchTask<*>>().also {
         if (account.enableFriends) {
@@ -51,29 +56,33 @@ class TaskManager(val account: Config.Account, initialStream: AuthenticatedStrea
     }
 
     @Synchronized
-    fun bind(stream: AuthenticatedStream) {
-        if (stream !in streams) {
-            streams.add(stream)
+    fun register(stream: AuthenticatedStream) {
+        if (stream !in streams && streams.add(stream)) {
             startTargetedTasks(stream)
-            logger.info { "A Stream has been bind to ${account.displayName}." }
+            logger.info { "A Stream has been registered to ${account.displayName}." }
         }
     }
 
     @Synchronized
-    fun unbind(stream: AuthenticatedStream) {
-        if (stream in streams) {
-            streams.remove(stream)
-            logger.info { "A Stream has been unbind from ${account.displayName}." }
+    fun unregister(stream: AuthenticatedStream) {
+        if (stream in streams && streams.remove(stream)) {
+            logger.info { "A Stream has been unregistered from ${account.displayName}." }
+        }
+    }
+
+    fun wait(stream: AuthenticatedStream) {
+        while (stream.isAlive) {
+            TimeUnit.SECONDS.sleep(3)
         }
     }
 
     fun emit(target: AuthenticatedStream, content: String) {
         try {
             target.send(content)
-        } catch (e: ChannelWriteException) {
-            unbind(target)
+        } catch (e: IOException) {
+            unregister(target)
         } catch (e: Exception) {
-            logger.error(e) { "A Stream failed sending payload. (${account.displayName})" }
+            logger.error(e) { "A Stream failed sending payload." }
         }
     }
     fun emit(target: AuthenticatedStream, vararg pairs: Pair<String, Any?>) {
@@ -86,10 +95,8 @@ class TaskManager(val account: Config.Account, initialStream: AuthenticatedStrea
         emit(target, payload.json)
     }
     fun emit(content: String) {
-        executor.execute {
-            for (it in streams) {
-                executor.execute { emit(it, content) }
-            }
+        for (it in streams) {
+            emit(it, content)
         }
     }
     fun emit(vararg pairs: Pair<String, Any?>) {
@@ -100,6 +107,18 @@ class TaskManager(val account: Config.Account, initialStream: AuthenticatedStrea
     }
     fun emit(payload: JsonModel) {
         emit(payload.json)
+    }
+
+    fun heartbeat() {
+        for (it in streams) {
+            try {
+                it.heartbeat()
+            } catch (e: IOException) {
+                unregister(it)
+            } catch (e: Exception) {
+                logger.error(e) { "A Stream failed sending heartbeat." }
+            }
+        }
     }
 
     fun startTasks() {
