@@ -8,13 +8,6 @@ import java.util.concurrent.TimeUnit
 
 class AuthenticatedStream(writer: Writer, query: Parameters, val account: Config.Account): Stream(writer, query) {
     override fun handle() {
-        // Start fetching
         fetcher.start(this)
-
-        // Heart beat
-        while (true) {
-            heartbeat()
-            TimeUnit.SECONDS.sleep(10)
-        }
     }
 }
