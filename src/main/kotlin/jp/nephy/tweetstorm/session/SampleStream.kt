@@ -103,7 +103,7 @@ class SampleStream(writer: Writer, query: Parameters): Stream(writer, query) {
     override fun handle() {
         val formatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH)
         formatter.timeZone = TimeZone.getTimeZone("UTC")
-        while (true) {
+        while (isAlive) {
             sampleStatus["created_at"] = formatter.format(Date())
             sampleStatus["text"] = UUID.randomUUID().toString()
             sampleStatus["id"] = sampleStatus["id"].long + 1
