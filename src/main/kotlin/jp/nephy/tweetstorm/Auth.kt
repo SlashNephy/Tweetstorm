@@ -5,7 +5,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.Parameters
 import java.net.URLDecoder
-import java.net.URLEncoder
 import java.util.*
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -28,12 +27,12 @@ fun Headers.parseAuthorizationHeader(method: HttpMethod, url: String, query: Par
         val signatureParam = authorizationData.toSortedMap()
         signatureParam.remove("oauth_signature")
         query.forEach { k, v ->
-            signatureParam[k.toURLEncode()] = v.last().toURLEncode()
+            signatureParam[k.encodeURL()] = v.last().encodeURL()
         }
-        val signatureParamString = signatureParam.toList().joinToString("&") { "${it.first}=${it.second}" }.toURLEncode()
-        val signatureBaseString = "${method.value}&${url.toURLEncode()}&$signatureParamString"
+        val signatureParamString = signatureParam.toList().joinToString("&") { "${it.first}=${it.second}" }.encodeURL()
+        val signatureBaseString = "${method.value}&${url.encodeURL()}&$signatureParamString"
 
-        val signingKey = SecretKeySpec("${it.cs.toURLEncode()}&${it.ats.toURLEncode()}".toByteArray(), "HmacSHA1")
+        val signingKey = SecretKeySpec("${it.cs.encodeURL()}&${it.ats.encodeURL()}".toByteArray(), "HmacSHA1")
         val signature = Mac.getInstance(signingKey.algorithm).apply {
             init(signingKey)
         }.doFinal(signatureBaseString.toByteArray()).let {
@@ -57,16 +56,5 @@ fun Headers.parseAuthorizationHeaderSimple(): Config.Account? {
     }.toMap()
 
     val id = authorizationData["oauth_token"]?.split("-")?.firstOrNull()?.toLongOrNull() ?: return null
-    println(id)
     return config.accounts.find { it.id == id }
-}
-
-private fun String.toURLEncode(): String {
-    return URLEncoder.encode(this@toURLEncode, "UTF-8").replace("%7E", "~").map {
-        when (it) {
-            '+' -> "%20"
-            '*' -> "%2A"
-            else -> "$it"
-        }
-    }.joinToString("")
 }

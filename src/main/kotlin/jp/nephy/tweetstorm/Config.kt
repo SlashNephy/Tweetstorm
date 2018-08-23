@@ -26,6 +26,7 @@ class Config(override val json: JsonObject): JsonModel {
         val id by json.byLong
         private val sn by json.byString
         val displayName by lazy { "@$sn" }
+        val fullName by lazy { "$displayName (ID: $id)" }
         val ck by json.byString
         val cs by json.byString
         val at by json.byString
