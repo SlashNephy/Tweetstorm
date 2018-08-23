@@ -15,11 +15,13 @@ import io.ktor.routing.Routing
 import io.ktor.routing.get
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.util.cio.ChannelWriteException
 import io.ktor.util.toMap
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.session.SampleStream
 import mu.KotlinLogging
 import org.slf4j.event.Level
+import java.io.IOException
 import java.util.logging.LogManager
 
 val config = Config.load()
@@ -45,15 +47,21 @@ fun Application.module() {
                 call.request.headers.parseAuthorizationHeaderSimple()
             } ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
-            call.respondWrite(ContentType.Application.Json, HttpStatusCode.OK) {
-                logger.info { "Account: ${account.displayName} (ID: ${account.id}) connected from ${call.request.origin.remoteHost} with parameter ${call.request.queryParameters.toMap()}." }
-                if (account.debug) {
-                    logger.info { "Account: ${account.displayName} (ID: ${account.id}) connected to debug stream." }
-                    SampleStream(this, call.request.queryParameters)
-                } else {
-                    AuthenticatedStream(this, call.request.queryParameters, account)
-                }.handle()
-            }
+            try {
+                call.respondWrite(ContentType.Application.Json, HttpStatusCode.OK) {
+                    logger.info { "Client: ${account.fullName} connected from ${call.request.origin.remoteHost} with parameter ${call.request.queryParameters.toMap()}." }
+                    logger.debug { "Client: ${account.fullName} configuration = ${account.json}" }
+
+                    if (account.debug) {
+                        logger.info { "Client: ${account.fullName} connected to debug stream." }
+                        SampleStream(this, call.request.queryParameters)
+                    } else {
+                        AuthenticatedStream(this, call.request.queryParameters, account)
+                    }.start()
+
+                    logger.info { "Client: ${account.fullName} has disconnected." }
+                }
+            } catch (e: IOException) {}
         }
     }
 }
