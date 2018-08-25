@@ -1,13 +1,11 @@
 package jp.nephy.tweetstorm
 
 import com.google.gson.JsonObject
-import io.ktor.util.cio.ChannelWriteException
 import jp.nephy.jsonkt.JsonKt
 import jp.nephy.jsonkt.JsonModel
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.PenicillinException
-import jp.nephy.penicillin.TwitterApiError
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
 import mu.KotlinLogging
@@ -82,7 +80,7 @@ class TaskManager(initialStream: AuthenticatedStream) {
         } catch (e: IOException) {
             unregister(target)
         } catch (e: Exception) {
-            logger.error(e) { "A Stream failed sending payload." }
+            logger.error(e) { "A Stream failed sending payload. ($content)" }
         }
     }
     fun emit(target: AuthenticatedStream, vararg pairs: Pair<String, Any?>) {
@@ -124,9 +122,13 @@ class TaskManager(initialStream: AuthenticatedStream) {
     fun startTasks() {
         tasks.forEach {
             executor.execute {
-                logger.debug { "FetchTask: ${it.javaClass.simpleName} started." }
+                it.logger.debug { "FetchTask: ${it.javaClass.simpleName} started." }
                 while (true) {
-                    it.fetch()
+                    try {
+                        it.fetch()
+                    } catch (e: Exception) {
+                        it.logger.error(e) { "An error occurred while fetching." }
+                    }
                     TimeUnit.SECONDS.sleep(5)
                 }
             }
@@ -136,8 +138,12 @@ class TaskManager(initialStream: AuthenticatedStream) {
     fun startTargetedTasks(target: AuthenticatedStream) {
         targetedTasks.forEach {
             executor.execute {
-                logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} started." }
-                it.fetch(target)
+                it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} started." }
+                try {
+                    it.fetch(target)
+                } catch (e: Exception) {
+                    it.logger.error(e) { "An error occurred while targeted fetching." }
+                }
             }
         }
     }
