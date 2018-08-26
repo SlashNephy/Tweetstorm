@@ -21,7 +21,8 @@ class Config(override val json: JsonObject): JsonModel {
     val host by json.byString { "127.0.0.1" }
     val port by json.byInt { 8080 }
     val skipAuth by json.byBool("skip_auth") { false }
-    val logLevel by json.byLambda("log_level") { Level.toLevel(toStringOrDefault("info"), Level.INFO)!! }
+    private val logLevelString by json.byString("log_level") { "info" }
+    val logLevel by lazy { Level.toLevel(logLevelString, Level.INFO)!! }
     val accounts by json.byModelList<Account>()
 
     class Account(override val json: JsonObject): JsonModel {
