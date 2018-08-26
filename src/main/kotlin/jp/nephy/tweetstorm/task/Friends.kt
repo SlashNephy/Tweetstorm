@@ -1,22 +1,19 @@
 package jp.nephy.tweetstorm.task
 
+import jp.nephy.penicillin.request.allIds
 import jp.nephy.tweetstorm.TaskManager
 import jp.nephy.tweetstorm.session.AuthenticatedStream
+import jp.nephy.tweetstorm.toBooleanEasy
 
-class Friends(override val manager: TaskManager): TargetedFetchTask<List<Long>>() {
-    override fun provide(target: AuthenticatedStream, data: List<Long>) {
-        if (target.stringifyFriendIds) {
+class Friends(override val manager: TaskManager): TargetedFetchTask() {
+    override fun run(target: AuthenticatedStream) {
+        val stringifyFriendIds = target.request.queryParameters["stringify_friend_ids"].orEmpty().toBooleanEasy()
+        val data = manager.twitter.friend.listIds().complete().untilLast().allIds
+
+        if (stringifyFriendIds) {
             manager.emit(target, "friends_str" to data.map { "$it" })
         } else {
             manager.emit(target, "friends" to data)
-        }
-    }
-
-    override fun fetch(target: AuthenticatedStream) {
-        try {
-            provide(target, manager.twitter.friend.listIds().complete().untilLast().flatMap { it.result.ids })
-        } catch (e: Exception) {
-            logger.error(e) { "An error occurred while getting friend ids." }
         }
     }
 }
