@@ -36,7 +36,6 @@ class Config(override val json: JsonObject): JsonModel {
         val ats by json.byString
         val listId by json.byNullableLong("list_id")
 
-        val debug by json.byBool { false }
         val syncListFollowing by json.byBool("sync_list_following") { false }
         val syncListIncludeSelf by json.byBool("sync_list_include_self") { true }
         val enableFriends by json.byBool("enable_friends") { true }
