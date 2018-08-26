@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 
 class TaskManager(initialStream: AuthenticatedStream): Closeable {
     val account = initialStream.account
-    private val logger = logger("Tweetstorm.TaskManager (${account.displayName})")
+    private val logger by lazy { logger("Tweetstorm.TaskManager (${account.displayName})") }
     private val executor = Executors.newCachedThreadPool()
     val twitter = PenicillinClient.build {
         application(account.ck, account.cs)
