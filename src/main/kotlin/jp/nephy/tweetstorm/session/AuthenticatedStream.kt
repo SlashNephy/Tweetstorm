@@ -1,12 +1,11 @@
 package jp.nephy.tweetstorm.session
 
-import io.ktor.http.Parameters
+import io.ktor.request.ApplicationRequest
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.fetcher
 import java.io.Writer
-import java.util.concurrent.TimeUnit
 
-class AuthenticatedStream(writer: Writer, query: Parameters, val account: Config.Account): Stream(writer, query) {
+class AuthenticatedStream(writer: Writer, override val request: ApplicationRequest, override val account: Config.Account): StreamWriter(writer) {
     override fun handle() {
         fetcher.start(this)
     }

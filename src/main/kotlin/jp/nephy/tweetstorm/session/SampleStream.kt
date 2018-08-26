@@ -1,7 +1,8 @@
 package jp.nephy.tweetstorm.session
 
-import io.ktor.http.Parameters
+import io.ktor.request.ApplicationRequest
 import jp.nephy.jsonkt.*
+import jp.nephy.tweetstorm.Config
 import java.io.Writer
 import java.text.SimpleDateFormat
 import java.util.*
@@ -99,10 +100,12 @@ private val sampleStatus = jsonObject(
         "supplemental_language" to null
 )
 
-class SampleStream(writer: Writer, query: Parameters): Stream(writer, query) {
+class SampleStream(writer: Writer, override val request: ApplicationRequest, override val account: Config.Account): StreamWriter(writer) {
+    private val formatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH).also {
+        it.timeZone = TimeZone.getTimeZone("UTC")
+    }
+
     override fun handle() {
-        val formatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH)
-        formatter.timeZone = TimeZone.getTimeZone("UTC")
         while (isAlive) {
             sampleStatus["created_at"] = formatter.format(Date())
             sampleStatus["text"] = UUID.randomUUID().toString()
