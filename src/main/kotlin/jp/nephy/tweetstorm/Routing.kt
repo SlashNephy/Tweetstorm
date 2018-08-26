@@ -32,7 +32,7 @@ fun Route.getUser() {
     get("/1.1/user.json") {
         val strict = call.request.headers.parseAuthorizationHeader(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
         val (account, strictAuth) = if (strict != null) {
-            strict to false
+            strict to true
         } else {
             call.request.headers.parseAuthorizationHeaderSimple() to false
         }
