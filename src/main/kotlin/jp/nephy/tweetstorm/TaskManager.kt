@@ -141,8 +141,6 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                         break
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while fetching." }
-                    } finally {
-                        TimeUnit.SECONDS.wait(5)
                     }
                 }
                 it.logger.debug { "FetchTask: ${it.javaClass.simpleName} will terminate." }
@@ -176,18 +174,15 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while regular task." }
                     } finally {
-                        it.unit.wait(it.interval)
+                        try {
+                            it.unit.sleep(it.interval)
+                        } catch (e: InterruptedException) {
+                        }
                     }
                 }
                 it.logger.debug { "RegularTask: ${it.javaClass.simpleName} will terminate." }
             }
         }
-    }
-
-    private fun TimeUnit.wait(timeout: Long) {
-        try {
-            sleep(timeout)
-        } catch (e: InterruptedException) {}
     }
 
     override fun close() {
