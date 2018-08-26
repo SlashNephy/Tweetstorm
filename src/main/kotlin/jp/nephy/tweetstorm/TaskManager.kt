@@ -139,10 +139,13 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                 while (!shouldTerminate) {
                     try {
                         it.run()
+                    } catch (e: InterruptedException) {
+                        break
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while fetching." }
+                    } finally {
+                        TimeUnit.SECONDS.wait(5)
                     }
-                    TimeUnit.SECONDS.sleep(5)
                 }
                 it.logger.debug { "FetchTask: ${it.javaClass.simpleName} will terminate." }
             }
@@ -154,10 +157,11 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                 it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} started." }
                 try {
                     it.run(target)
+                    it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} finished." }
+                } catch (e: InterruptedException) {
                 } catch (e: Exception) {
                     it.logger.error(e) { "An error occurred while targeted fetching." }
                 }
-                it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} finished." }
             }
         }
     }
@@ -168,16 +172,24 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                     it.logger.debug { "RegularTask: ${it.javaClass.simpleName} started." }
                     try {
                         it.run()
+                        it.logger.debug { "RegularTask: ${it.javaClass.simpleName} finished." }
+                    } catch (e: InterruptedException) {
+                        break
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while regular task." }
+                    } finally {
+                        it.unit.wait(it.interval)
                     }
-                    it.logger.debug { "RegularTask: ${it.javaClass.simpleName} finished." }
-
-                    it.unit.sleep(it.interval)
                 }
                 it.logger.debug { "RegularTask: ${it.javaClass.simpleName} will terminate." }
             }
         }
+    }
+
+    private fun TimeUnit.wait(timeout: Long) {
+        try {
+            sleep(timeout)
+        } catch (e: InterruptedException) {}
     }
 
     override fun close() {
