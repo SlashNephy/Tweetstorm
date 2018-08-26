@@ -20,9 +20,12 @@ class Config(override val json: JsonObject): JsonModel {
 
     val host by json.byString { "127.0.0.1" }
     val port by json.byInt { 8080 }
+
     val skipAuth by json.byBool("skip_auth") { false }
+
     private val logLevelString by json.byString("log_level") { "info" }
     val logLevel by lazy { Level.toLevel(logLevelString, Level.INFO)!! }
+
     val accounts by json.byModelList<Account>()
 
     class Account(override val json: JsonObject): JsonModel {
@@ -35,6 +38,7 @@ class Config(override val json: JsonObject): JsonModel {
         val at by json.byString
         val ats by json.byString
         val listId by json.byNullableLong("list_id")
+        val token by json.byNullableString
 
         val syncListFollowing by json.byBool("sync_list_following") { false }
         val syncListIncludeSelf by json.byBool("sync_list_include_self") { true }

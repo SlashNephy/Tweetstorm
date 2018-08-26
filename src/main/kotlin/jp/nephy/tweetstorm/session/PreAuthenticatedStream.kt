@@ -12,39 +12,33 @@ import java.util.concurrent.TimeUnit
 
 class PreAuthenticatedStream(writer: Writer, override val request: ApplicationRequest, val account: Config.Account): StreamWriter(writer) {
     companion object {
-        private val tokens = CopyOnWriteArrayList<String>()
+        private val streams = CopyOnWriteArrayList<PreAuthenticatedStream>()
 
-        fun check(token: String): Boolean {
-            return tokens.remove(token)
+        @Synchronized
+        fun auth(urlToken: String, accountToken: String): Boolean {
+            return streams.removeIf { it.urlToken == urlToken && it.account.token == accountToken }
         }
 
-        private fun register(): String {
-            return UUID.randomUUID().toString().toLowerCase().replace("-", "").also {
-                tokens.add(it)
-            }
+        @Synchronized
+        private fun contain(stream: PreAuthenticatedStream): Boolean {
+            return streams.count { it.urlToken == stream.urlToken && it.account.token == stream.account.token } > 0
+        }
+
+        @Synchronized
+        private fun register(stream: PreAuthenticatedStream) {
+            streams.add(stream)
         }
     }
 
-    private val token = register()
+    private val urlToken = UUID.randomUUID().toString().toLowerCase().replace("-", "")
 
     private var isSuccessBack = false
     val isSuccess: Boolean
         get() = isSuccessBack
 
-    fun block() {
-        while (isAlive) {
-            if (!tokens.contains(token)) {
-                isSuccessBack = true
-                return
-            }
-
-            heartbeat()
-            TimeUnit.SECONDS.sleep(1)
-        }
-        isSuccessBack = false
-    }
-
     override fun handle() {
+        register(this)
+
         val stringifyFriendIds = request.queryParameters["stringify_friend_ids"].orEmpty().toBooleanEasy()
         if (stringifyFriendIds) {
             send("{\"friends_str\":[]}")
@@ -52,17 +46,28 @@ class PreAuthenticatedStream(writer: Writer, override val request: ApplicationRe
             send("{\"friends\":[]}")
         }
 
-        TimeUnit.SECONDS.sleep(2)
+        TimeUnit.SECONDS.sleep(3)
 
-        val json = JsonKt.toJsonString(CustomStatusBuilder.new {
+        heartbeat()
+
+        send(JsonKt.toJsonString(CustomStatusBuilder.new {
             user {
                 name("Tweetstorm Authenticator")
             }
-            text { "To start streaming, access https://userstream.twitter.com/auth/$token" }
-            url("https://userstream.twitter.com/auth/$token", 27, 95)
-        })
-        send(json)
+            text { "To start streaming, access https://userstream.twitter.com/auth/token/$urlToken" }
+            url("https://userstream.twitter.com/auth/token/$urlToken", 27, 101)
+        }))
 
-        block()
+        repeat(300) {
+            if (!contain(this)) {
+                isSuccessBack = true
+                return
+            }
+
+            if (it % 10 == 0) {
+                heartbeat()
+            }
+            TimeUnit.SECONDS.sleep(1)
+        }
     }
 }
