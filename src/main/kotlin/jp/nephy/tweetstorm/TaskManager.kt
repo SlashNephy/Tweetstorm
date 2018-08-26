@@ -8,24 +8,24 @@ import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.PenicillinException
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
-import mu.KotlinLogging
+import java.io.Closeable
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class TaskManager(initialStream: AuthenticatedStream) {
+class TaskManager(initialStream: AuthenticatedStream): Closeable {
     val account = initialStream.account
-    private val logger = KotlinLogging.logger("Tweetstorm.TaskManager (${account.displayName})")
+    private val logger = logger("Tweetstorm.TaskManager (${account.displayName})")
     private val executor = Executors.newCachedThreadPool()
     val twitter = PenicillinClient.build {
         application(account.ck, account.cs)
         token(account.at, account.ats)
     }
-    val streams = CopyOnWriteArrayList<AuthenticatedStream>().also {
+    private val streams = CopyOnWriteArrayList<AuthenticatedStream>().also {
         it.add(initialStream)
     }
-    private val tasks: List<FetchTask<*>> = mutableListOf<FetchTask<*>>().also {
+    private val tasks: List<FetchTask> = mutableListOf<FetchTask>().also {
         if (account.listId != null) {
             it.add(ListTimeline(this))
         } else {
@@ -47,24 +47,31 @@ class TaskManager(initialStream: AuthenticatedStream) {
         // it.add(Delete(this))
         it.add(Heartbeat(this))
     }
-    private val targetedTasks: List<TargetedFetchTask<*>> = mutableListOf<TargetedFetchTask<*>>().also {
+    private val targetedTasks: List<TargetedFetchTask> = mutableListOf<TargetedFetchTask>().also {
         if (account.enableFriends) {
             it.add(Friends(this))
         }
     }
+    private val regularTasks: List<RegularTask> = mutableListOf<RegularTask>().also {
+        if (account.syncListFollowing && account.listId != null) {
+            it.add(SyncList(this))
+        }
+    }
+    val shouldTerminate: Boolean
+        get() = streams.isEmpty()
 
     @Synchronized
     fun register(stream: AuthenticatedStream) {
         if (stream !in streams && streams.add(stream)) {
             startTargetedTasks(stream)
-            logger.info { "A Stream has been registered to ${account.displayName}." }
+            logger.debug { "A Stream has been registered to ${account.displayName}." }
         }
     }
 
     @Synchronized
     fun unregister(stream: AuthenticatedStream) {
         if (stream in streams && streams.remove(stream)) {
-            logger.info { "A Stream has been unregistered from ${account.displayName}." }
+            logger.debug { "A Stream has been unregistered from ${account.displayName}." }
         }
     }
 
@@ -72,6 +79,7 @@ class TaskManager(initialStream: AuthenticatedStream) {
         while (stream.isAlive) {
             TimeUnit.SECONDS.sleep(3)
         }
+        unregister(stream)
     }
 
     fun emit(target: AuthenticatedStream, content: String) {
@@ -119,32 +127,60 @@ class TaskManager(initialStream: AuthenticatedStream) {
         }
     }
 
-    fun startTasks() {
+    fun start(target: AuthenticatedStream) {
+        startTasks()
+        startTargetedTasks(target)
+        startRegularTasks()
+    }
+    private fun startTasks() {
         tasks.forEach {
             executor.execute {
                 it.logger.debug { "FetchTask: ${it.javaClass.simpleName} started." }
-                while (true) {
+                while (!shouldTerminate) {
                     try {
-                        it.fetch()
+                        it.run()
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while fetching." }
                     }
                     TimeUnit.SECONDS.sleep(5)
                 }
+                it.logger.debug { "FetchTask: ${it.javaClass.simpleName} will terminate." }
             }
         }
     }
-
-    fun startTargetedTasks(target: AuthenticatedStream) {
+    private fun startTargetedTasks(target: AuthenticatedStream) {
         targetedTasks.forEach {
             executor.execute {
                 it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} started." }
                 try {
-                    it.fetch(target)
+                    it.run(target)
                 } catch (e: Exception) {
                     it.logger.error(e) { "An error occurred while targeted fetching." }
                 }
+                it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} finished." }
             }
         }
+    }
+    private fun startRegularTasks() {
+        regularTasks.forEach {
+            executor.execute {
+                while (!shouldTerminate) {
+                    it.logger.debug { "RegularTask: ${it.javaClass.simpleName} started." }
+                    try {
+                        it.run()
+                    } catch (e: Exception) {
+                        it.logger.error(e) { "An error occurred while regular task." }
+                    }
+                    it.logger.debug { "RegularTask: ${it.javaClass.simpleName} finished." }
+
+                    it.unit.sleep(it.interval)
+                }
+                it.logger.debug { "RegularTask: ${it.javaClass.simpleName} will terminate." }
+            }
+        }
+    }
+
+    override fun close() {
+        executor.shutdownNow()
     }
 }
