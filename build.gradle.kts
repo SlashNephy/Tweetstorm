@@ -23,6 +23,9 @@ repositories {
 
 dependencies {
     compile(kotlin("stdlib-jdk8"))
+    compile(kotlin("compiler-embeddable"))
+    compile(kotlin("script-runtime"))
+    compile(kotlin("script-util"))
 
     compile("io.ktor:ktor-server-core:$ktorVersion")
     compile("io.ktor:ktor-server-netty:$ktorVersion")
