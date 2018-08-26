@@ -4,6 +4,7 @@ import jp.nephy.jsonkt.contains
 import jp.nephy.jsonkt.set
 import jp.nephy.jsonkt.string
 import jp.nephy.penicillin.PenicillinException
+import jp.nephy.penicillin.TwitterErrorMessage
 import jp.nephy.penicillin.model.CardState
 import jp.nephy.penicillin.model.Status
 import jp.nephy.penicillin.request.ListAction
@@ -45,7 +46,7 @@ abstract class TimelineTask(final override val manager: TaskManager): FetchTask(
             }
         } catch (e: Exception) {
             // Rate limit exceeded
-            if (e is PenicillinException && e.error?.code == 88) {
+            if (e is PenicillinException && e.error == TwitterErrorMessage.RateLimitExceeded) {
                 TimeUnit.SECONDS.sleep(10)
             } else {
                 logger.error(e) { "An error occurred while getting timeline." }
@@ -68,7 +69,7 @@ abstract class TimelineTask(final override val manager: TaskManager): FetchTask(
                     append(card.data.choices.map { "${it.key}: ${it.value} Pt" }.joinToString(" / "))
                 }
             } catch (e: Exception) {
-                logger.error(e) { "Vote element could not be extracted." }
+                logger.debug(e) { "Vote element could not be extracted." }
             }
         }
 
