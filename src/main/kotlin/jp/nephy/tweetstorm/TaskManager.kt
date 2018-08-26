@@ -28,11 +28,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     private val tasks: List<FetchTask> = mutableListOf<FetchTask>().also {
         if (account.listId != null) {
             it.add(ListTimeline(this))
-        } else {
-            it.add(HomeTimeline(this))
-        }
 
-        if (account.listId != null) {
             try {
                 twitter.list.member(listId = account.listId, userId = account.id).complete()
             } catch (e: PenicillinException) {
@@ -40,6 +36,8 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                 it.add(UserTimeline(this))
                 it.add(MentionTimeline(this))
             }
+        } else {
+            it.add(HomeTimeline(this))
         }
 
         // it.add(DirectMessage(this))
