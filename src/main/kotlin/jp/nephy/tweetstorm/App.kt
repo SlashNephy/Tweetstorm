@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
             install(Routing) {
                 getTop()
                 getUser()
-                authByToken()
+                // authByToken()
             }
         }
     }
