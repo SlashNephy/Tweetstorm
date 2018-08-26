@@ -26,6 +26,8 @@ dependencies {
 
     compile("io.ktor:ktor-server-core:$ktorVersion")
     compile("io.ktor:ktor-server-netty:$ktorVersion")
+    compile("io.ktor:ktor-html-builder:$ktorVersion")
+    compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.11")
 
     compile("jp.nephy:penicillin:2.0.4")
     compile("jp.nephy:jsonkt:1.5")
