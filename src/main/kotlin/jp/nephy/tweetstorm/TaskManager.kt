@@ -6,6 +6,7 @@ import jp.nephy.jsonkt.JsonModel
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.PenicillinException
+import jp.nephy.tweetstorm.builder.CustomStatusBuilder
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
 import java.io.Closeable
@@ -98,6 +99,9 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     fun emit(target: AuthenticatedStream, payload: JsonModel) {
         emit(target, payload.json)
     }
+    fun emit(target: AuthenticatedStream, builder: CustomStatusBuilder.() -> Unit) {
+        emit(target, CustomStatusBuilder.new(builder))
+    }
     fun emit(content: String) {
         for (it in streams) {
             emit(it, content)
@@ -111,6 +115,9 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
     fun emit(payload: JsonModel) {
         emit(payload.json)
+    }
+    fun emit(builder: CustomStatusBuilder.() -> Unit) {
+        emit(CustomStatusBuilder.new(builder))
     }
 
     fun heartbeat() {
