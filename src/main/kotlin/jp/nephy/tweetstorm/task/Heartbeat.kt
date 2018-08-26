@@ -5,9 +5,7 @@ import java.util.concurrent.TimeUnit
 
 class Heartbeat(override val manager: TaskManager): FetchTask() {
     override fun run() {
-        while (true) {
-            manager.heartbeat()
-            TimeUnit.SECONDS.sleep(10)
-        }
+        manager.heartbeat()
+        TimeUnit.SECONDS.sleep(10)
     }
 }
