@@ -1,8 +1,6 @@
 package jp.nephy.tweetstorm.builder
 
-import jp.nephy.jsonkt.jsonArray
-import jp.nephy.jsonkt.jsonObject
-import jp.nephy.jsonkt.set
+import jp.nephy.jsonkt.*
 import jp.nephy.penicillin.model.Status
 import java.text.SimpleDateFormat
 import java.util.*
@@ -21,12 +19,13 @@ class CustomStatusBuilder: JsonBuilder<Status> {
         }
     }
 
-    private val json = jsonObject(
+    val json = jsonObject(
             "created_at" to null,
             "id" to null,
             "id_str" to null,
             "text" to "",
             "full_text" to "",
+            "display_text_range" to jsonArray(),
             "truncated" to false,
             "entities" to jsonObject(
                     "hashtags" to jsonArray(),
@@ -46,6 +45,8 @@ class CustomStatusBuilder: JsonBuilder<Status> {
             "favorite_count" to 0,
             "favorited" to false,
             "retweeted" to false,
+            "possibly_sensitive" to false,
+            "possibly_sensitive_appealable" to false,
             "lang" to "ja",
             "geo" to null,
             "coordinates" to null,
@@ -89,10 +90,6 @@ class CustomStatusBuilder: JsonBuilder<Status> {
         json["in_reply_to_screen_name"] = screenName
     }
 
-    fun quoteStatus() {
-        json["is_quote_status"] = true
-    }
-
     fun alreadyRetweeted() {
         json["retweeted"] = true
     }
@@ -106,14 +103,21 @@ class CustomStatusBuilder: JsonBuilder<Status> {
         json["favorite_count"] = favorite
     }
 
-    fun lang(code: String) {
-        json["lang"] = code
+    fun url(url: String, start: Int, end: Int) {
+        json["entities"]["urls"].jsonArray.add(jsonObject(
+                "display_url" to url.removePrefix("https://").removePrefix("http://"),
+                "url" to url,
+                "indices" to jsonArray(start, end),
+                "expanded_url" to url
+        ))
     }
 
     override fun build(): Status {
         val id = incrementId()
         json["id"] = id
         json["id_str"] = id.toString()
+
+        json["display_text_range"] = jsonArray(0, json["text"].string.length)
 
         json["source"] = "<a href=\"$sourceUrl\" rel=\"nofollow\">$sourceName</a>"
 
