@@ -12,7 +12,7 @@ class CustomUserBuilder: JsonBuilder<User> {
         private const val userId = 1L
     }
 
-    private val json = jsonObject(
+    val json = jsonObject(
             "id" to userId,
             "id_str" to userId.toString(),
             "name" to "Tweetstorm",
@@ -21,6 +21,16 @@ class CustomUserBuilder: JsonBuilder<User> {
             "description" to "This account is dummy and is used to deliver internal messages.",
             "url" to "https://github.com/SlashNephy/Tweetstorm",
             "entities" to jsonObject(
+                    "url" to jsonObject(
+                            "urls" to jsonArray(
+                                    jsonObject(
+                                        "display_url" to "github.com/SlashNephy/Tweetstorm",
+                                        "url" to "https://t.co/Cn0EQY6Yzd",
+                                        "indices" to jsonArray(0, 23),
+                                        "expanded_url" to "https://github.com/SlashNephy/Tweetstorm"
+                                    )
+                            )
+                    ),
                     "description" to jsonObject(
                             "urls" to jsonArray()
                     )
@@ -56,7 +66,8 @@ class CustomUserBuilder: JsonBuilder<User> {
             "default_profile_image" to false,
             "following" to false,
             "follow_request_sent" to false,
-            "notifications" to false
+            "notifications" to false,
+            "contributors_enabled" to false
     )
 
     fun name(value: String) {
@@ -68,14 +79,6 @@ class CustomUserBuilder: JsonBuilder<User> {
 
     fun location(value: String) {
         json["location"] = value
-    }
-
-    fun description(value: String) {
-        json["description"] = value
-    }
-
-    fun url(value: String) {
-        json["url"] = value
     }
 
     fun isProtected() {
@@ -91,10 +94,6 @@ class CustomUserBuilder: JsonBuilder<User> {
         json["statuses_count"] = statuses
         json["favourites_count"] = favorites
         json["listed_count"] = listed
-    }
-
-    fun lang(code: String) {
-        json["lang"] = code
     }
 
     fun icon(url: String) {
