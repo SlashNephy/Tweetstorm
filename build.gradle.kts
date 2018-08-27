@@ -13,7 +13,7 @@ application {
 }
 
 group = "jp.nephy"
-version = "1.0-SNAPSHOT"
+version = "1.0.5"
 
 repositories {
     mavenCentral()
@@ -38,10 +38,31 @@ dependencies {
     compile("org.fusesource.jansi:jansi:1.17.1")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+}
+
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
 }
 
 kotlin {
     experimental.coroutines = Coroutines.ENABLE
+}
+
+val fatJar = task("fatJar", type = Jar::class) {
+    baseName = "${project.name}-full"
+    manifest {
+        attributes["Main-Class"] = "jp.nephy.tweetstorm.AppKt"
+    }
+
+    @Suppress("IMPLICIT_CAST_TO_ANY")
+    from(configurations.runtime.map { if (it.isDirectory) it else zipTree(it) })
+    with(tasks["jar"] as CopySpec)
+}
+
+tasks {
+    "build" {
+        dependsOn(fatJar)
+    }
 }
