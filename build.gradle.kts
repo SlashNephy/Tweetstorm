@@ -13,7 +13,6 @@ application {
 }
 
 group = "jp.nephy"
-version = "1.0.5"
 
 repositories {
     mavenCentral()
