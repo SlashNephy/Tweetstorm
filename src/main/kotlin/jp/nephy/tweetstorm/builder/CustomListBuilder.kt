@@ -1,0 +1,77 @@
+package jp.nephy.tweetstorm.builder
+
+import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.set
+import jp.nephy.penicillin.models.TwitterList
+import java.text.SimpleDateFormat
+import java.util.*
+
+class CustomListBuilder: JsonBuilder<TwitterList> {
+    companion object {
+        private var id = 1000001L
+
+        @Synchronized
+        private fun incrementId(): Long {
+            return id.also {
+                id += 2
+            }
+        }
+
+        fun new(builder: CustomListBuilder.() -> Unit): TwitterList {
+            return CustomListBuilder().apply(builder).build()
+        }
+    }
+
+    override val json = jsonObject(
+            "created_at" to null,
+            "description" to "Tweetstorm",
+            "following" to false,
+            "full_name" to "Tweetstorm",
+            "id" to null,
+            "id_str" to null,
+            "member_count" to 0,
+            "mode" to "public",
+            "name" to "Tweetstorm",
+            "slag" to "Tweetstorm",
+            "subscriber_count" to 0,
+            "uri" to "Tweetstorm/Tweetstorm"
+    )
+
+    private var createdAt: Date? = null
+    fun createdAt(date: Date? = null) {
+        createdAt = date
+    }
+
+    fun description(text: () -> Any?) {
+        json["description"] = text()?.toString().orEmpty()
+    }
+
+    fun following() {
+        json["following"] = true
+    }
+
+    fun name(shortName: String, fullName: String, slug: String, uri: String) {
+        json["name"] = shortName
+        json["full_name"] = fullName
+        json["slug"] = slug
+        json["uri"] = uri
+    }
+
+    fun count(member: Int = 0, subscriber: Int = 0) {
+        json["member_count"] = member
+        json["subscriber_count"] = subscriber
+    }
+
+    override fun build(): TwitterList {
+        val dateFormatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH).also {
+            it.timeZone = TimeZone.getTimeZone("UTC")
+        }
+        json["created_at"] = dateFormatter.format(createdAt ?: Date())
+
+        val id = incrementId()
+        json["id"] = id
+        json["id_str"] = id.toString()
+
+        return TwitterList(json)
+    }
+}
