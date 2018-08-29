@@ -1,7 +1,7 @@
 package jp.nephy.tweetstorm.session
 
 import io.ktor.request.ApplicationRequest
-import jp.nephy.jsonkt.JsonKt
+import jp.nephy.jsonkt.toJsonString
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.builder.CustomStatusBuilder
 import jp.nephy.tweetstorm.toBooleanEasy
@@ -17,6 +17,11 @@ class PreAuthenticatedStream(writer: Writer, override val request: ApplicationRe
         @Synchronized
         fun auth(urlToken: String, accountToken: String): Boolean {
             return streams.removeIf { it.urlToken == urlToken && it.account.token == accountToken }
+        }
+
+        @Synchronized
+        fun check(urlToken: String): Boolean {
+            return streams.count { it.urlToken == urlToken } > 0
         }
 
         @Synchronized
@@ -50,13 +55,13 @@ class PreAuthenticatedStream(writer: Writer, override val request: ApplicationRe
 
         heartbeat()
 
-        send(JsonKt.toJsonString(CustomStatusBuilder.new {
+        send(CustomStatusBuilder.new {
             user {
                 name("Tweetstorm Authenticator")
             }
             text { "To start streaming, access https://userstream.twitter.com/auth/token/$urlToken" }
             url("https://userstream.twitter.com/auth/token/$urlToken", 27, 101)
-        }))
+        }.toJsonString())
 
         repeat(300) {
             if (!contain(this)) {
