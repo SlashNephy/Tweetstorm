@@ -11,7 +11,7 @@ class Config(override val json: JsonObject): JsonModel {
 
         fun load(): Config {
             return try {
-                JsonKt.parse(configPath)
+                configPath.parse()
             } catch (e: Exception) {
                 throw IllegalStateException("config.json is invalid.")
             }

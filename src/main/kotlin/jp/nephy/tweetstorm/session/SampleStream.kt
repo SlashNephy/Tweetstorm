@@ -1,7 +1,7 @@
 package jp.nephy.tweetstorm.session
 
 import io.ktor.request.ApplicationRequest
-import jp.nephy.jsonkt.JsonKt
+import jp.nephy.jsonkt.toJsonString
 import jp.nephy.tweetstorm.builder.CustomStatusBuilder
 import java.io.Writer
 import java.util.concurrent.TimeUnit
@@ -12,7 +12,7 @@ class SampleStream(writer: Writer, override val request: ApplicationRequest): St
             text { "This is sample stream. Since Tweetstorm could not authenticate you, sample stream has started. Please check your config.json." }
         }
 
-        send(JsonKt.toJsonString(status))
+        send(status.toJsonString())
 
         while (isAlive) {
             heartbeat()
