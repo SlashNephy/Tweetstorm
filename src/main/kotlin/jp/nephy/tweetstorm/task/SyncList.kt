@@ -1,7 +1,7 @@
 package jp.nephy.tweetstorm.task
 
-import jp.nephy.penicillin.request.allIds
-import jp.nephy.penicillin.request.allUsers
+import jp.nephy.penicillin.core.allIds
+import jp.nephy.penicillin.core.allUsers
 import jp.nephy.tweetstorm.TaskManager
 import java.util.concurrent.TimeUnit
 
