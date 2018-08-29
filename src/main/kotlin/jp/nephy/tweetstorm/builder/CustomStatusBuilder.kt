@@ -1,17 +1,19 @@
 package jp.nephy.tweetstorm.builder
 
 import jp.nephy.jsonkt.*
-import jp.nephy.penicillin.model.Status
+import jp.nephy.penicillin.models.Status
 import java.text.SimpleDateFormat
 import java.util.*
 
 class CustomStatusBuilder: JsonBuilder<Status> {
     companion object {
-        private var id = 1L
+        private var id = 1000001L
 
         @Synchronized
         private fun incrementId(): Long {
-            return id++
+            return id.also {
+                id += 2
+            }
         }
 
         fun new(builder: CustomStatusBuilder.() -> Unit): Status {
@@ -19,7 +21,7 @@ class CustomStatusBuilder: JsonBuilder<Status> {
         }
     }
 
-    val json = jsonObject(
+    override val json = jsonObject(
             "created_at" to null,
             "id" to null,
             "id_str" to null,
