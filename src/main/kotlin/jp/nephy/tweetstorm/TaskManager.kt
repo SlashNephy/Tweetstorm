@@ -1,11 +1,11 @@
 package jp.nephy.tweetstorm
 
 import com.google.gson.JsonObject
-import jp.nephy.jsonkt.JsonKt
 import jp.nephy.jsonkt.JsonModel
 import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.toJsonString
 import jp.nephy.penicillin.PenicillinClient
-import jp.nephy.penicillin.PenicillinException
+import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.tweetstorm.builder.CustomStatusBuilder
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
@@ -19,9 +19,11 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     val account = initialStream.account
     private val logger by lazy { logger("Tweetstorm.TaskManager (${account.displayName})") }
     private val executor = Executors.newCachedThreadPool()
-    val twitter = PenicillinClient.build {
-        application(account.ck, account.cs)
-        token(account.at, account.ats)
+    val twitter = PenicillinClient {
+        account {
+            application(account.ck, account.cs)
+            token(account.at, account.ats)
+        }
     }
     private val streams = CopyOnWriteArrayList<AuthenticatedStream>().also {
         it.add(initialStream)
@@ -94,7 +96,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         emit(target, jsonObject(*pairs))
     }
     fun emit(target: AuthenticatedStream, json: JsonObject) {
-        emit(target, JsonKt.toJsonString(json))
+        emit(target, json.toJsonString())
     }
     fun emit(target: AuthenticatedStream, payload: JsonModel) {
         emit(target, payload.json)
@@ -111,7 +113,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         emit(jsonObject(*pairs))
     }
     fun emit(json: JsonObject) {
-        emit(JsonKt.toJsonString(json))
+        emit(json.toJsonString())
     }
     fun emit(payload: JsonModel) {
         emit(payload.json)

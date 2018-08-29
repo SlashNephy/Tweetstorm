@@ -1,6 +1,6 @@
 package jp.nephy.tweetstorm.task
 
-import jp.nephy.penicillin.request.allIds
+import jp.nephy.penicillin.core.allIds
 import jp.nephy.tweetstorm.TaskManager
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.toBooleanEasy

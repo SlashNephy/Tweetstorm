@@ -3,11 +3,11 @@ package jp.nephy.tweetstorm.task
 import jp.nephy.jsonkt.contains
 import jp.nephy.jsonkt.set
 import jp.nephy.jsonkt.string
-import jp.nephy.penicillin.PenicillinException
-import jp.nephy.penicillin.TwitterErrorMessage
-import jp.nephy.penicillin.model.CardState
-import jp.nephy.penicillin.model.Status
-import jp.nephy.penicillin.request.ListAction
+import jp.nephy.penicillin.core.PenicillinException
+import jp.nephy.penicillin.core.PenicillinJsonArrayAction
+import jp.nephy.penicillin.core.TwitterErrorMessage
+import jp.nephy.penicillin.models.CardState
+import jp.nephy.penicillin.models.Status
 import jp.nephy.tweetstorm.TaskManager
 import java.time.Duration
 import java.time.Instant
@@ -21,17 +21,17 @@ abstract class TimelineTask(final override val manager: TaskManager): FetchTask(
     }
 
     private var lastId: Long? = null
-    fun timeline(sleepSec: Int, source: (lastId: Long?) -> ListAction<Status>) {
+    fun timeline(sleepSec: Int, source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>) {
         try {
             val timeline = source(lastId).complete()
-            if (timeline.result.isNotEmpty()) {
+            if (timeline.isNotEmpty()) {
                 if (lastId != null) {
-                    timeline.result.reversed().forEach {
+                    timeline.reversed().forEach {
                         manager.emit(it.apply { postProcess() })
                     }
                 }
 
-                lastId = timeline.result.first().id
+                lastId = timeline.first().id
             }
 
             if (timeline.rateLimit.hasLimit) {
@@ -40,7 +40,7 @@ abstract class TimelineTask(final override val manager: TaskManager): FetchTask(
                     streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(duration.seconds)
                 } else if (timeline.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
-                    streamLogger.warn { "Rate limit: API calls (/${timeline.request.url().pathSegments().joinToString("/")}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.rateLimit.remaining}/${timeline.rateLimit.limit}, Reset at ${timeline.rateLimit.resetAt})" }
+                    streamLogger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.rateLimit.remaining}/${timeline.rateLimit.limit}, Reset at ${timeline.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(10)
                 }
             }
