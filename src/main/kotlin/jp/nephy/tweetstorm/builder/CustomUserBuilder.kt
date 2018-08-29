@@ -3,7 +3,7 @@ package jp.nephy.tweetstorm.builder
 import jp.nephy.jsonkt.jsonArray
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.jsonkt.set
-import jp.nephy.penicillin.model.User
+import jp.nephy.penicillin.models.User
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -12,7 +12,7 @@ class CustomUserBuilder: JsonBuilder<User> {
         private const val userId = 1L
     }
 
-    val json = jsonObject(
+    override val json = jsonObject(
             "id" to userId,
             "id_str" to userId.toString(),
             "name" to "Tweetstorm",
