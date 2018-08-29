@@ -9,7 +9,7 @@ import java.util.*
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-fun Headers.parseAuthorizationHeader(method: HttpMethod, url: String, query: Parameters): Config.Account? {
+fun Headers.parseAuthorizationHeaderStrict(method: HttpMethod, url: String, query: Parameters): Config.Account? {
     val authorization = get(HttpHeaders.Authorization) ?: return null
     if (!authorization.startsWith("OAuth")) {
         return null

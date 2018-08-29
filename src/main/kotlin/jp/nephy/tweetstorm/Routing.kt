@@ -30,34 +30,35 @@ fun Route.getTop() {
 
 fun Route.getUser() {
     get("/1.1/user.json") {
-        val strict = call.request.headers.parseAuthorizationHeader(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
-        val (account, strictAuth) = if (strict != null) {
-            strict to true
-        } else {
-            call.request.headers.parseAuthorizationHeaderSimple() to false
-        }
+        val strict = call.request.headers.parseAuthorizationHeaderStrict(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
+        val simple = call.request.headers.parseAuthorizationHeaderSimple()
+        val account = strict ?: simple
+        var authOK = strict != null || (tweetstormConfig.skipAuth && account != null)
 
         try {
             call.respondWrite(ContentType.Application.Json, HttpStatusCode.OK) {
-                if (account == null) {
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected." }
-                    SampleStream(this, call.request).handle()
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has disconnected." }
-                } else {
-                    if (!strictAuth && !tweetstormConfig.skipAuth) {
-                        logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) requested account-token authentication." }
-                        val preStream = PreAuthenticatedStream(this, call.request, account)
-                        preStream.handle()
-                        if (!preStream.isSuccess) {
-                            logger.warn { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has failed account-token authentication. Close connection." }
-                            return@respondWrite
-                        }
-                        logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has passed account-token authentication. Keep connection." }
-                    }
+                if (account != null && !tweetstormConfig.skipAuth && !authOK) {
+                    logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) requested account-token authentication." }
 
+                    val preStream = PreAuthenticatedStream(this, call.request, account)
+                    preStream.handle()
+
+                    if (preStream.isSuccess) {
+                        authOK = true
+                        logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has passed account-token authentication. Start streaming." }
+                    } else {
+                        logger.warn { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has failed account-token authentication." }
+                    }
+                }
+
+                if (account != null && authOK) {
                     logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) connected with parameter ${call.request.queryParameters.toMap()}." }
                     AuthenticatedStream(this, call.request, account).handle()
                     logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has disconnected." }
+                } else {
+                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected." }
+                    SampleStream(this, call.request).handle()
+                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has disconnected." }
                 }
             }
         } catch (e: IOException) {}
@@ -67,10 +68,15 @@ fun Route.getUser() {
 fun Route.authByToken() {
     route("/auth/token/{urlToken}") {
         get {
+            val urlToken = call.parameters["urlToken"]
+            if (urlToken == null || !PreAuthenticatedStream.check(urlToken)) {
+                return@get call.respond(HttpStatusCode.NotFound)
+            }
+
             call.respondHtml {
                 body {
                     div {
-                        p { +"Input your account token" }
+                        p { +"Enter your account token which you defined in config.json." }
                         form(method = FormMethod.post) {
                             input(type = InputType.password, name = "token")
                             input(type = InputType.submit) {
