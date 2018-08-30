@@ -7,15 +7,6 @@ import java.util.*
 
 class CustomListBuilder: JsonBuilder<TwitterList> {
     companion object {
-        private var id = 1000001L
-
-        @Synchronized
-        private fun incrementId(): Long {
-            return id.also {
-                id += 2
-            }
-        }
-
         fun new(builder: CustomListBuilder.() -> Unit): TwitterList {
             return CustomListBuilder().apply(builder).build()
         }
@@ -64,7 +55,7 @@ class CustomListBuilder: JsonBuilder<TwitterList> {
     override fun build(): TwitterList {
         json["created_at"] = createdAt.toCreatedAt()
 
-        val id = incrementId()
+        val id = generateId()
         json["id"] = id
         json["id_str"] = id.toString()
 
