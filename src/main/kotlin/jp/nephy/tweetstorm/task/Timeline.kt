@@ -39,7 +39,7 @@ abstract class TimelineTask(final override val manager: TaskManager): FetchTask(
                 if (timeline.rateLimit.remaining!! < 2) {
                     streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(duration.seconds)
-                } else if (timeline.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
+                } else if (duration.seconds > 3 && timeline.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
                     streamLogger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.rateLimit.remaining}/${timeline.rateLimit.limit}, Reset at ${timeline.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(10)
                 }
