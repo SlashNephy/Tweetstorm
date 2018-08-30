@@ -125,11 +125,15 @@ class CustomStatusBuilder: JsonBuilder<Status> {
 
         json["user"] = user.build().json
 
-        val dateFormatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH).also {
-            it.timeZone = TimeZone.getTimeZone("UTC")
-        }
-        json["created_at"] = dateFormatter.format(createdAt ?: Date())
+        json["created_at"] = createdAt.toCreatedAt()
 
         return Status(json)
     }
+}
+
+internal fun Date?.toCreatedAt(): String {
+    val dateFormatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH).also {
+        it.timeZone = TimeZone.getTimeZone("UTC")
+    }
+    return dateFormatter.format(this ?: Date())
 }

@@ -107,10 +107,7 @@ class CustomUserBuilder: JsonBuilder<User> {
     }
 
     override fun build(): User {
-        val dateFormatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH).also {
-            it.timeZone = TimeZone.getTimeZone("UTC")
-        }
-        json["created_at"] = dateFormatter.format(createdAt ?: Date())
+        json["created_at"] = createdAt.toCreatedAt()
 
         return User(json)
     }

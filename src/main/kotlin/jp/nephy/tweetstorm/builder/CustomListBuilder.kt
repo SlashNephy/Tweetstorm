@@ -3,7 +3,6 @@ package jp.nephy.tweetstorm.builder
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.TwitterList
-import java.text.SimpleDateFormat
 import java.util.*
 
 class CustomListBuilder: JsonBuilder<TwitterList> {
@@ -63,10 +62,7 @@ class CustomListBuilder: JsonBuilder<TwitterList> {
     }
 
     override fun build(): TwitterList {
-        val dateFormatter = SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZZ yyyy", Locale.ENGLISH).also {
-            it.timeZone = TimeZone.getTimeZone("UTC")
-        }
-        json["created_at"] = dateFormatter.format(createdAt ?: Date())
+        json["created_at"] = createdAt.toCreatedAt()
 
         val id = incrementId()
         json["id"] = id
