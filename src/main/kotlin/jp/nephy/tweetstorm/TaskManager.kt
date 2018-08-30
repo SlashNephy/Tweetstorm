@@ -6,7 +6,6 @@ import jp.nephy.jsonkt.jsonObject
 import jp.nephy.jsonkt.toJsonString
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.PenicillinException
-import jp.nephy.tweetstorm.builder.CustomStatusBuilder
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
 import java.io.Closeable
@@ -18,7 +17,11 @@ import java.util.concurrent.TimeUnit
 class TaskManager(initialStream: AuthenticatedStream): Closeable {
     val account = initialStream.account
     private val logger by lazy { logger("Tweetstorm.TaskManager (${account.displayName})") }
-    private val executor = Executors.newCachedThreadPool()
+    private val executor = if (tweetstormConfig.threadsPerAccount < 1) {
+        Executors.newCachedThreadPool()
+    } else {
+        Executors.newFixedThreadPool(tweetstormConfig.threadsPerAccount)
+    }
     val twitter = PenicillinClient {
         account {
             application(account.ck, account.cs)
@@ -101,9 +104,6 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     fun emit(target: AuthenticatedStream, payload: JsonModel) {
         emit(target, payload.json)
     }
-    fun emit(target: AuthenticatedStream, builder: CustomStatusBuilder.() -> Unit) {
-        emit(target, CustomStatusBuilder.new(builder))
-    }
     fun emit(content: String) {
         for (it in streams) {
             emit(it, content)
@@ -117,9 +117,6 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
     fun emit(payload: JsonModel) {
         emit(payload.json)
-    }
-    fun emit(builder: CustomStatusBuilder.() -> Unit) {
-        emit(CustomStatusBuilder.new(builder))
     }
 
     fun heartbeat() {

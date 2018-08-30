@@ -23,6 +23,8 @@ class Config(override val json: JsonObject): JsonModel {
 
     val skipAuth by json.byBool("skip_auth") { false }
 
+    val threadsPerAccount by json.byInt("threads_per_account") { -1 }
+
     private val logLevelString by json.byString("log_level") { "info" }
     val logLevel by lazy { Level.toLevel(logLevelString, Level.INFO)!! }
 
