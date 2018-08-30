@@ -7,15 +7,6 @@ import java.util.*
 
 class CustomStatusBuilder: JsonBuilder<Status> {
     companion object {
-        private var id = 1000001L
-
-        @Synchronized
-        private fun incrementId(): Long {
-            return id.also {
-                id += 2
-            }
-        }
-
         fun new(builder: CustomStatusBuilder.() -> Unit): Status {
             return CustomStatusBuilder().apply(builder).build()
         }
@@ -115,7 +106,7 @@ class CustomStatusBuilder: JsonBuilder<Status> {
     }
 
     override fun build(): Status {
-        val id = incrementId()
+        val id = generateId()
         json["id"] = id
         json["id_str"] = id.toString()
 
@@ -136,4 +127,12 @@ internal fun Date?.toCreatedAt(): String {
         it.timeZone = TimeZone.getTimeZone("UTC")
     }
     return dateFormatter.format(this ?: Date())
+}
+
+private var id = 100000001L
+@Synchronized
+internal fun generateId(): Long {
+    return id.also {
+        id += 2
+    }
 }
