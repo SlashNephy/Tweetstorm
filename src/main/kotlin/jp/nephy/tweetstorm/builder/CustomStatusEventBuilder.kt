@@ -6,12 +6,6 @@ import jp.nephy.penicillin.models.UserStreamStatusEvent
 import java.util.*
 
 class CustomStatusEventBuilder(type: StatusEventType): JsonBuilder<UserStreamStatusEvent> {
-    companion object {
-        fun new(type: StatusEventType, builder: CustomStatusEventBuilder.() -> Unit): UserStreamStatusEvent {
-            return CustomStatusEventBuilder(type).apply(builder).build()
-        }
-    }
-
     override val json = jsonObject(
             "event" to type.key,
             "source" to null,

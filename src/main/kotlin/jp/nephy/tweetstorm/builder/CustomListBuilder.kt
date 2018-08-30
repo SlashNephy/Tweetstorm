@@ -6,12 +6,6 @@ import jp.nephy.penicillin.models.TwitterList
 import java.util.*
 
 class CustomListBuilder: JsonBuilder<TwitterList> {
-    companion object {
-        fun new(builder: CustomListBuilder.() -> Unit): TwitterList {
-            return CustomListBuilder().apply(builder).build()
-        }
-    }
-
     override val json = jsonObject(
             "created_at" to null,
             "description" to "Tweetstorm",

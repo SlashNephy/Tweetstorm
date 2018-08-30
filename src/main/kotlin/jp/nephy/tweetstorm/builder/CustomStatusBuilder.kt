@@ -6,12 +6,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class CustomStatusBuilder: JsonBuilder<Status> {
-    companion object {
-        fun new(builder: CustomStatusBuilder.() -> Unit): Status {
-            return CustomStatusBuilder().apply(builder).build()
-        }
-    }
-
     override val json = jsonObject(
             "created_at" to null,
             "id" to null,
