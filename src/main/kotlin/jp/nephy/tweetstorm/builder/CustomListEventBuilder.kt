@@ -6,12 +6,6 @@ import jp.nephy.penicillin.models.UserStreamListEvent
 import java.util.*
 
 class CustomListEventBuilder(type: ListEventType): JsonBuilder<UserStreamListEvent> {
-    companion object {
-        fun new(type: ListEventType, builder: CustomListEventBuilder.() -> Unit): UserStreamListEvent {
-            return CustomListEventBuilder(type).apply(builder).build()
-        }
-    }
-
     override val json = jsonObject(
             "event" to type.key,
             "source" to null,

@@ -1,7 +1,9 @@
 package jp.nephy.tweetstorm.session
 
 import jp.nephy.tweetstorm.TaskManager
+import jp.nephy.tweetstorm.builder.newStatus
 import jp.nephy.tweetstorm.logger
+import org.slf4j.event.Level
 
 class StreamLogger(private val manager: TaskManager, name: String) {
     private val logger = logger(name)
@@ -13,20 +15,8 @@ class StreamLogger(private val manager: TaskManager, name: String) {
             logger.error(text)
         }
 
-        if (stream != null) {
-            manager.emit(stream) {
-                user {
-                    name("[Error] Tweetstorm")
-                }
-                text(text)
-            }
-        } else {
-            manager.emit {
-                user {
-                    name("[Error] Tweetstorm")
-                }
-                text(text)
-            }
+        if (logger.isErrorEnabled) {
+            emitStatus(stream, Level.ERROR, text)
         }
     }
 
@@ -37,20 +27,8 @@ class StreamLogger(private val manager: TaskManager, name: String) {
             logger.warn(text)
         }
 
-        if (stream != null) {
-            manager.emit(stream) {
-                user {
-                    name("[Warn] Tweetstorm")
-                }
-                text(text)
-            }
-        } else {
-            manager.emit {
-                user {
-                    name("[Warn] Tweetstorm")
-                }
-                text(text)
-            }
+        if (logger.isWarnEnabled) {
+            emitStatus(stream, Level.WARN, text)
         }
     }
     
@@ -61,20 +39,8 @@ class StreamLogger(private val manager: TaskManager, name: String) {
             logger.info(text)
         }
 
-        if (stream != null) {
-            manager.emit(stream) {
-                user {
-                    name("[Info] Tweetstorm")
-                }
-                text(text)
-            }
-        } else {
-            manager.emit {
-                user {
-                    name("[Info] Tweetstorm")
-                }
-                text(text)
-            }
+        if (logger.isInfoEnabled) {
+            emitStatus(stream, Level.INFO, text)
         }
     }
 
@@ -85,20 +51,8 @@ class StreamLogger(private val manager: TaskManager, name: String) {
             logger.debug(text)
         }
 
-        if (stream != null) {
-            manager.emit(stream) {
-                user {
-                    name("[Debug] Tweetstorm")
-                }
-                text(text)
-            }
-        } else {
-            manager.emit {
-                user {
-                    name("[Debug] Tweetstorm")
-                }
-                text(text)
-            }
+        if (logger.isDebugEnabled) {
+            emitStatus(stream, Level.DEBUG, text)
         }
     }
 
@@ -109,20 +63,26 @@ class StreamLogger(private val manager: TaskManager, name: String) {
             logger.trace(text)
         }
 
+        if (logger.isTraceEnabled) {
+            emitStatus(stream, Level.TRACE, text)
+        }
+    }
+
+    private fun emitStatus(stream: AuthenticatedStream?, logLevel: Level, text: () -> Any?) {
         if (stream != null) {
-            manager.emit(stream) {
+            manager.emit(stream, newStatus {
                 user {
-                    name("[Trace] Tweetstorm")
+                    name("[${logLevel.name}] Tweetstorm")
                 }
                 text(text)
-            }
+            })
         } else {
-            manager.emit {
+            manager.emit(newStatus {
                 user {
-                    name("[Trace] Tweetstorm")
+                    name("[${logLevel.name}] Tweetstorm")
                 }
                 text(text)
-            }
+            })
         }
     }
 }

@@ -3,7 +3,7 @@ package jp.nephy.tweetstorm.session
 import io.ktor.request.ApplicationRequest
 import jp.nephy.jsonkt.toJsonString
 import jp.nephy.tweetstorm.Config
-import jp.nephy.tweetstorm.builder.CustomStatusBuilder
+import jp.nephy.tweetstorm.builder.newStatus
 import jp.nephy.tweetstorm.toBooleanEasy
 import java.io.Writer
 import java.util.*
@@ -55,7 +55,7 @@ class PreAuthenticatedStream(writer: Writer, override val request: ApplicationRe
 
         heartbeat()
 
-        send(CustomStatusBuilder.new {
+        send(newStatus {
             user {
                 name("Tweetstorm Authenticator")
             }
