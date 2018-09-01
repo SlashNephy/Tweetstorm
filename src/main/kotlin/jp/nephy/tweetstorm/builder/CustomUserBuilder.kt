@@ -4,7 +4,6 @@ import jp.nephy.jsonkt.jsonArray
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.User
-import java.text.SimpleDateFormat
 import java.util.*
 
 class CustomUserBuilder: JsonBuilder<User> {
