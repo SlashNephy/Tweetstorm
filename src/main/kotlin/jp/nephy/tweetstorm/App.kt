@@ -2,7 +2,7 @@ package jp.nephy.tweetstorm
 
 import io.ktor.application.install
 import io.ktor.features.CallLogging
-import io.ktor.features.XForwardedHeadersSupport
+import io.ktor.features.XForwardedHeaderSupport
 import io.ktor.routing.Routing
 import io.ktor.server.engine.applicationEngineEnvironment
 import io.ktor.server.engine.connector
@@ -26,7 +26,7 @@ fun main(args: Array<String>) {
             install(CallLogging) {
                 level = Level.INFO
             }
-            install(XForwardedHeadersSupport)
+            install(XForwardedHeaderSupport)
 
             install(Routing) {
                 getTop()
