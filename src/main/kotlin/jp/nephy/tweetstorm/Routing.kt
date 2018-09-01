@@ -156,7 +156,10 @@ fun Route.authByToken() {
         }
 
         post { _ ->
-            val urlToken = call.parameters["urlToken"] ?: return@post call.respond(HttpStatusCode.NotFound)
+            val urlToken = call.parameters["urlToken"]
+            if (urlToken == null || !PreAuthenticatedStream.check(urlToken)) {
+                return@post call.respond(HttpStatusCode.NotFound)
+            }
             val accountToken = call.receiveParameters()["token"]
                     ?: return@post call.respond(HttpStatusCode.Unauthorized)
 
