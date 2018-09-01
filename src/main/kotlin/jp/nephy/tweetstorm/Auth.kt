@@ -23,7 +23,7 @@ fun Headers.parseAuthorizationHeaderStrict(method: HttpMethod, url: String, quer
 
     return tweetstormConfig.accounts.filter {
         it.ck == authorizationData["oauth_consumer_key"] && it.at == authorizationData["oauth_token"]
-    }.find {
+    }.find { account ->
         val signatureParam = authorizationData.toSortedMap()
         signatureParam.remove("oauth_signature")
         query.forEach { k, v ->
@@ -32,7 +32,7 @@ fun Headers.parseAuthorizationHeaderStrict(method: HttpMethod, url: String, quer
         val signatureParamString = signatureParam.toList().joinToString("&") { "${it.first}=${it.second}" }.encodeURL()
         val signatureBaseString = "${method.value}&${url.encodeURL()}&$signatureParamString"
 
-        val signingKey = SecretKeySpec("${it.cs.encodeURL()}&${it.ats.encodeURL()}".toByteArray(), "HmacSHA1")
+        val signingKey = SecretKeySpec("${account.cs.encodeURL()}&${account.ats.encodeURL()}".toByteArray(), "HmacSHA1")
         val signature = Mac.getInstance(signingKey.algorithm).apply {
             init(signingKey)
         }.doFinal(signatureBaseString.toByteArray()).let {

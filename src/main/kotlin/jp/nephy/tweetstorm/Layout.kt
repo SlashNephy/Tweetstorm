@@ -1,6 +1,8 @@
 package jp.nephy.tweetstorm
 
-import io.ktor.html.*
+import io.ktor.html.Placeholder
+import io.ktor.html.Template
+import io.ktor.html.insert
 import kotlinx.html.*
 
 
@@ -12,7 +14,11 @@ class NavLayout: Template<HTML> {
                 div("navbar navbar-expand-lg navbar-dark bg-primary") {
                     a("/", "", "navbar-brand") { +"Tweetstorm" }
                 }
-                style { +".alert { padding-top: 16px; }" }
+                style {
+                    unsafe {
+                        +".alert { padding-top: 16px; }"
+                    }
+                }
                 div("container") {
                     insert(navContent)
                 }
@@ -31,7 +37,11 @@ class FooterLayout: Template<HTML> {
                 div("container") {
                     hr()
                     div("text-center") {
-                        style { +".opacity05 { opacity: 0.5; }" }
+                        style {
+                            unsafe {
+                                +".opacity05 { opacity: 0.5; }"
+                            }
+                        }
                         p {
                             +"Tweetstorm brought to you by "
                             a("https://twitter.com/SlashNephy") {
