@@ -25,3 +25,7 @@ fun newUser(builder: CustomUserBuilder.() -> Unit): User {
 fun newUserEvent(type: UserEventType, builder: CustomUserEventBuilder.() -> Unit): UserStreamUserEvent {
     return CustomUserEventBuilder(type).apply(builder).build()
 }
+
+fun newDirectMessage(builder: CustomDirectMessageBuilder.() -> Unit): DirectMessage {
+    return CustomDirectMessageBuilder().apply(builder).build()
+}

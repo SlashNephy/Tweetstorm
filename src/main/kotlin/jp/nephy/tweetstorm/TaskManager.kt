@@ -46,7 +46,9 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
             it.add(HomeTimeline(this))
         }
 
-        // it.add(DirectMessage(this))
+        if (account.enableDirectMessage) {
+            it.add(DirectMessage(this))
+        }
         // it.add(Activity(this))
         // it.add(Delete(this))
         it.add(Heartbeat(this))
