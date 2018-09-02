@@ -34,13 +34,13 @@ abstract class TimelineTask(final override val manager: TaskManager): FetchTask(
                 lastId = timeline.first().id
             }
 
-            if (timeline.rateLimit.hasLimit) {
-                val duration = Duration.between(Instant.now(), timeline.rateLimit.resetAt!!.toInstant())
-                if (timeline.rateLimit.remaining!! < 2) {
-                    streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.rateLimit.resetAt})" }
+            if (timeline.headers.rateLimit.hasLimit) {
+                val duration = Duration.between(Instant.now(), timeline.headers.rateLimit.resetAt!!.toInstant())
+                if (timeline.headers.rateLimit.remaining!! < 2) {
+                    streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.headers.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(duration.seconds)
-                } else if (duration.seconds > 3 && timeline.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
-                    streamLogger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.rateLimit.remaining}/${timeline.rateLimit.limit}, Reset at ${timeline.rateLimit.resetAt})" }
+                } else if (duration.seconds > 3 && timeline.headers.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
+                    streamLogger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(10)
                 }
             }
