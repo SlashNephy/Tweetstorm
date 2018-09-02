@@ -22,6 +22,7 @@
     </appender>
 
     <logger name="Tweetstorm" level="INFO" />
+    <logger name="Penicillin" level="INFO" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
