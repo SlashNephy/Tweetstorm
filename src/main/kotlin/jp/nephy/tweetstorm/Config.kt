@@ -44,10 +44,17 @@ class Config(override val json: JsonObject): JsonModel {
 
         val syncListFollowing by json.byBool("sync_list_following") { false }
         val syncListIncludeSelf by json.byBool("sync_list_include_self") { true }
+
         val enableDirectMessage by json.byBool("enable_direct_message") { true }
         val enableFriends by json.byBool("enable_friends") { true }
+        val enableSampleStream by json.byBool("enable_sample_stream") { false }
+
+        val filterStreamTracks by json.byStringList("filter_stream_tracks")
+        val filterStreamFollows by json.byLongList("filter_stream_follows")
+
         val markVia by json.byBool("mark_via") { false }
         val markVote by json.byBool("mark_vote") { false }
+
         val listInterval by json.byInt("list_timeline_refresh_sec") { 3 }
         val homeInterval by json.byInt("home_timeline_refresh_sec") { 90 }
         val userInterval by json.byInt("user_timeline_refresh_sec") { 3 }
