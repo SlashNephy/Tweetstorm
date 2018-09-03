@@ -4,15 +4,18 @@ import jp.nephy.tweetstorm.TaskManager
 import jp.nephy.tweetstorm.logger
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.session.StreamLogger
+import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
-abstract class Task {
+abstract class Task: Closeable {
     val logger by lazy { logger("Tweetstorm.task.${javaClass.simpleName} (${manager.account.displayName})") }
     val streamLogger by lazy { StreamLogger(manager, "Tweetstorm.task.${javaClass.simpleName} (${manager.account.displayName})") }
     abstract val manager: TaskManager
+
+    override fun close() {}
 }
 
-abstract class FetchTask: Task() {
+abstract class RunnableTask: Task() {
     abstract fun run()
 }
 

@@ -13,7 +13,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-abstract class TimelineTask(final override val manager: TaskManager): FetchTask() {
+abstract class TimelineTask(final override val manager: TaskManager): RunnableTask() {
     val timelineOptions = if (manager.account.markVote) {
         arrayOf("include_entities" to "true", "include_rts" to "true", "tweet_mode" to "extended", "include_cards" to "1", "cards_platform" to "iPhone-13")
     } else {
