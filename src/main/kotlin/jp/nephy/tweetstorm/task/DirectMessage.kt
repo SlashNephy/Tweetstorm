@@ -9,7 +9,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-class DirectMessage(override val manager: TaskManager): FetchTask() {
+class DirectMessage(override val manager: TaskManager): RunnableTask() {
     private val sleepSec = manager.account.messageInterval.toLong()
 
     private var lastId: Long? = null
