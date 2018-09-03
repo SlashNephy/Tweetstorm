@@ -6,6 +6,7 @@ import jp.nephy.jsonkt.jsonObject
 import jp.nephy.jsonkt.toJsonString
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.PenicillinException
+import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
 import java.io.Closeable
@@ -31,16 +32,17 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     private val streams = CopyOnWriteArrayList<AuthenticatedStream>().also {
         it.add(initialStream)
     }
-    private val tasks: List<FetchTask> = mutableListOf<FetchTask>().also {
+    private val tasks: List<RunnableTask> = mutableListOf<RunnableTask>().also {
         if (account.listId != null) {
             it.add(ListTimeline(this))
 
             try {
                 twitter.list.member(listId = account.listId, userId = account.id).complete()
             } catch (e: PenicillinException) {
-                // if list does not contain me
-                it.add(UserTimeline(this))
-                it.add(MentionTimeline(this))
+                if (e.error == TwitterErrorMessage.UserNotInThisList) {
+                    it.add(UserTimeline(this))
+                    it.add(MentionTimeline(this))
+                }
             }
         } else {
             it.add(HomeTimeline(this))
@@ -49,8 +51,13 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         if (account.enableDirectMessage) {
             it.add(DirectMessage(this))
         }
+        if (account.filterStreamTracks.isNotEmpty() || account.filterStreamFollows.isNotEmpty()) {
+            it.add(FilterStream(this))
+        }
+        if (account.enableSampleStream) {
+            it.add(SampleStream(this))
+        }
         // it.add(Activity(this))
-        // it.add(Delete(this))
         it.add(Heartbeat(this))
     }
     private val targetedTasks: List<TargetedFetchTask> = mutableListOf<TargetedFetchTask>().also {
@@ -141,17 +148,18 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     private fun startTasks() {
         tasks.forEach {
             executor.execute {
-                it.logger.debug { "FetchTask: ${it.javaClass.simpleName} started." }
+                it.logger.debug { "RunnableTask: ${it.javaClass.simpleName} started." }
                 while (!shouldTerminate) {
                     try {
                         it.run()
                     } catch (e: InterruptedException) {
+                        it.close()
                         break
                     } catch (e: Exception) {
-                        it.logger.error(e) { "An error occurred while fetching." }
+                        it.logger.error(e) { "An error occurred while task." }
                     }
                 }
-                it.logger.debug { "FetchTask: ${it.javaClass.simpleName} will terminate." }
+                it.logger.debug { "RunnableTask: ${it.javaClass.simpleName} will terminate." }
             }
         }
     }
@@ -163,8 +171,11 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                     it.run(target)
                     it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} finished." }
                 } catch (e: InterruptedException) {
+                    it.close()
                 } catch (e: Exception) {
-                    it.logger.error(e) { "An error occurred while targeted fetching." }
+                    it.logger.error(e) { "An error occurred while targeted task." }
+                } finally {
+                    it.close()
                 }
             }
         }
@@ -178,6 +189,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                         it.run()
                         it.logger.debug { "RegularTask: ${it.javaClass.simpleName} finished." }
                     } catch (e: InterruptedException) {
+                        it.close()
                         break
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while regular task." }
@@ -185,6 +197,8 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                         try {
                             it.unit.sleep(it.interval)
                         } catch (e: InterruptedException) {
+                            it.close()
+                            break
                         }
                     }
                 }
