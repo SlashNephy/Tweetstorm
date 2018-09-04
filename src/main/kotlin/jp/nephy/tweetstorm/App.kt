@@ -7,16 +7,17 @@ import io.ktor.routing.Routing
 import io.ktor.server.engine.applicationEngineEnvironment
 import io.ktor.server.engine.connector
 import io.ktor.server.netty.NettyApplicationEngine
+import mu.KotlinLogging
 import org.slf4j.event.Level
-import java.util.logging.LogManager
 
+private val logger = KotlinLogging.logger("Tweetstorm")
 val tweetstormConfig = Config.load()
 val fetcher = Fetcher()
 
 fun main(args: Array<String>) {
-    LogManager.getLogManager().reset()
-
     val environment = applicationEngineEnvironment {
+        log = logger
+
         connector {
             host = tweetstormConfig.host
             port = tweetstormConfig.port
