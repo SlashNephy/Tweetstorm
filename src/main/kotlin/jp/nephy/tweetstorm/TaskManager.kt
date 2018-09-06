@@ -57,7 +57,9 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         if (account.enableSampleStream) {
             it.add(SampleStream(this))
         }
-        // it.add(Activity(this))
+        if (account.enableActivity && account.twitterForiPhoneAccessToken != null && account.twitterForiPhoneAccessTokenSecret != null) {
+            it.add(Activity(this))
+        }
         it.add(Heartbeat(this))
     }
     private val targetedTasks: List<TargetedFetchTask> = mutableListOf<TargetedFetchTask>().also {
@@ -98,6 +100,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     fun emit(target: AuthenticatedStream, content: String) {
         try {
             target.send(content)
+            logger.trace { "Payload = $content" }
         } catch (e: IOException) {
             unregister(target)
         } catch (e: Exception) {
