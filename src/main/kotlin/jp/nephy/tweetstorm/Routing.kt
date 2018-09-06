@@ -14,8 +14,8 @@ import io.ktor.routing.post
 import io.ktor.routing.route
 import io.ktor.util.toMap
 import jp.nephy.tweetstorm.session.AuthenticatedStream
+import jp.nephy.tweetstorm.session.DemoStream
 import jp.nephy.tweetstorm.session.PreAuthenticatedStream
-import jp.nephy.tweetstorm.session.SampleStream
 import kotlinx.html.*
 import java.io.IOException
 
@@ -93,9 +93,9 @@ fun Route.getUser() {
                     AuthenticatedStream(this, call.request, account).handle()
                     logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has disconnected from UserStream API." }
                 } else {
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected to SampleStream." }
-                    SampleStream(this, call.request).handle()
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has disconnected from SampleStream." }
+                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected to DemoStream." }
+                    DemoStream(this, call.request).handle()
+                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has disconnected from DemoStream." }
                 }
             }
         } catch (e: IOException) {

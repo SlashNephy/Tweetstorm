@@ -6,10 +6,10 @@ import jp.nephy.tweetstorm.builder.newStatus
 import java.io.Writer
 import java.util.concurrent.TimeUnit
 
-class SampleStream(writer: Writer, override val request: ApplicationRequest): StreamWriter(writer) {
+class DemoStream(writer: Writer, override val request: ApplicationRequest): StreamWriter(writer) {
     override fun handle() {
         val status = newStatus {
-            text { "This is sample stream. Since Tweetstorm could not authenticate you, sample stream has started. Please check your config.json." }
+            text { "This is demo stream. Since Tweetstorm could not authenticate you, demo stream has started. Please check your config.json." }
         }
 
         send(status.toJsonString())
