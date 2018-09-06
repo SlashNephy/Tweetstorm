@@ -56,5 +56,5 @@ fun Headers.parseAuthorizationHeaderSimple(): Config.Account? {
     }.toMap()
 
     val id = authorizationData["oauth_token"]?.split("-")?.firstOrNull()?.toLongOrNull() ?: return null
-    return tweetstormConfig.accounts.find { it.id == id }
+    return tweetstormConfig.accounts.find { it.user.id == id }
 }

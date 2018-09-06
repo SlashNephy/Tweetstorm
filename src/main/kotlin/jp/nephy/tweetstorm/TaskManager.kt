@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 
 class TaskManager(initialStream: AuthenticatedStream): Closeable {
     val account = initialStream.account
-    private val logger by lazy { logger("Tweetstorm.TaskManager (${account.displayName})") }
+    private val logger by lazy { logger("Tweetstorm.TaskManager (@${account.user.screenName})") }
     private val executor = if (tweetstormConfig.threadsPerAccount < 1) {
         Executors.newCachedThreadPool()
     } else {
@@ -37,7 +37,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
             it.add(ListTimeline(this))
 
             try {
-                twitter.list.member(listId = account.listId, userId = account.id).complete()
+                twitter.list.member(listId = account.listId, userId = account.user.id).complete()
             } catch (e: PenicillinException) {
                 if (e.error == TwitterErrorMessage.UserNotInThisList) {
                     it.add(UserTimeline(this))
@@ -79,14 +79,14 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     fun register(stream: AuthenticatedStream) {
         if (stream !in streams && streams.add(stream)) {
             startTargetedTasks(stream)
-            logger.debug { "A Stream has been registered to ${account.displayName}." }
+            logger.debug { "A Stream has been registered to @${account.user.screenName}." }
         }
     }
 
     @Synchronized
     fun unregister(stream: AuthenticatedStream) {
         if (stream in streams && streams.remove(stream)) {
-            logger.debug { "A Stream has been unregistered from ${account.displayName}." }
+            logger.debug { "A Stream has been unregistered from @${account.user.screenName}." }
         }
     }
 
