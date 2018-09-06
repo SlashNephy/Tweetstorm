@@ -60,5 +60,10 @@ class Config(override val json: JsonObject): JsonModel {
         val userInterval by json.byInt("user_timeline_refresh_sec") { 3 }
         val mentionInterval by json.byInt("mention_timeline_refresh_sec") { 45 }
         val messageInterval by json.byInt("direct_message_refresh_sec") { 90 }
+        val activityInterval by json.byInt("activity_refresh_sec") { 10 }
+
+        val enableActivity by json.byBool("enable_activity") { false }
+        val twitterForiPhoneAccessToken by json.byNullableString("t4i_at")
+        val twitterForiPhoneAccessTokenSecret by json.byNullableString("t4i_ats")
     }
 }
