@@ -18,7 +18,7 @@ class DirectMessage(override val manager: TaskManager): RunnableTask() {
             val messages = manager.twitter.directMessageEvent.list(count = 200).complete()
             if (messages.result.events.isNotEmpty()) {
                 if (lastId != null) {
-                    messages.result.events.filter { it.type == "message_create" }.filter { it.id.toLong() > lastId!! }.reversed().forEach {
+                    messages.result.events.filter { it.type == "message_create" }.filter { lastId!! < it.id.toLong() }.reversed().forEach {
                         manager.emit(newDirectMessage {
                             recipient {
                                 json["id"] = it.messageCreate.target.recipientId.toLong()
@@ -41,7 +41,7 @@ class DirectMessage(override val manager: TaskManager): RunnableTask() {
                     streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${messages.headers.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(duration.seconds)
                 } else if (duration.seconds > 3 && messages.headers.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
-                    streamLogger.warn { "Rate limit: API calls (/${messages.request.url}) seem to be frequent than expected so consider adjusting `*_messages_refresh_sec` value in config.json. Sleep 10 secs. (${messages.headers.rateLimit.remaining}/${messages.headers.rateLimit.limit}, Reset at ${messages.headers.rateLimit.resetAt})" }
+                    streamLogger.warn { "Rate limit: API calls (/${messages.request.url}) seem to be frequent than expected so consider adjusting `direct_message_refresh_sec` value in config.json. Sleep 10 secs. (${messages.headers.rateLimit.remaining}/${messages.headers.rateLimit.limit}, Reset at ${messages.headers.rateLimit.resetAt})" }
                     TimeUnit.SECONDS.sleep(10)
                 }
             }
