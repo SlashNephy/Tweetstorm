@@ -21,10 +21,8 @@ Tweetstorm's goal is to simulate the UserStream API which retired on August 23th
 Tweetstorm provides following json data.
 - Tweets  
 - Direct messages    
-- Friend Ids  
-
-Also, next following json data type is NOT provided yet. But future update may make it possible.
 - Activities / Events
+- Friend Ids  
 
 ## Wiki
 Sections like Setup or Compatibility are moved to [Wiki](https://github.com/SlashNephy/Tweetstorm/wiki).
