@@ -24,14 +24,12 @@ Tweetstormは以下のJSONデータを提供します。
   - リストを毎秒更新することで実質的なリアルタイムを実現しています。
   - リストに自分が入っていない場合は, 別途にUserタイムライン, Mentionタイムラインを呼び出し, 配信します。
 - ダイレクトメッセージ  
+- アクティビティ  
+  - `favorite`, `unfavorite`, `follow`, ...
+  - 利用にはTwitter for iPhoneのアクセストークンが必要です。
 - フレンドID  
   - UserStream接続開始直後に流れてきていた `{"friends": [11111, 22222, ...]}` です。
   - `stringify_friend_ids=true`パラメータで従来どおり文字列の配列でIDを受け取れます。
-
-また, 次のデータは未実装ですが, 今後提供される可能性があります。
-- アクティビティ  
-  - `favorite`, `unfavorite`, `follow`, ...
-  - AAA (Account Activity API)が利用できなくても提供するように実装する予定です。
 
 これら以外にも従来のUserStreamで配信されていたデータもありますが, API仕様変更によりTweetstormは提供できません。
 
