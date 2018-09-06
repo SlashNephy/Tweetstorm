@@ -82,20 +82,20 @@ fun Route.getUser() {
 
                     if (preStream.isSuccess) {
                         authOK = true
-                        logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has passed account-token authentication. Start streaming." }
+                        logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has passed account-token authentication." }
                     } else {
                         logger.warn { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has failed account-token authentication." }
                     }
                 }
 
                 if (account != null && authOK) {
-                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) connected with parameter ${call.request.queryParameters.toMap()}." }
+                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) connected to UserStream API with parameter ${call.request.queryParameters.toMap()}." }
                     AuthenticatedStream(this, call.request, account).handle()
-                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has disconnected." }
+                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has disconnected from UserStream API." }
                 } else {
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected." }
+                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected to SampleStream." }
                     SampleStream(this, call.request).handle()
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has disconnected." }
+                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has disconnected from SampleStream." }
                 }
             }
         } catch (e: IOException) {
