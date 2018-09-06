@@ -8,8 +8,8 @@ import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
 abstract class Task: Closeable {
-    val logger by lazy { logger("Tweetstorm.task.${javaClass.simpleName} (${manager.account.displayName})") }
-    val streamLogger by lazy { StreamLogger(manager, "Tweetstorm.task.${javaClass.simpleName} (${manager.account.displayName})") }
+    val logger by lazy { logger("Tweetstorm.task.${javaClass.simpleName} (@${manager.account.user.screenName})") }
+    val streamLogger by lazy { StreamLogger(manager, "Tweetstorm.task.${javaClass.simpleName} (@${manager.account.user.screenName})") }
     abstract val manager: TaskManager
 
     override fun close() {}

@@ -3,6 +3,7 @@ package jp.nephy.tweetstorm
 import ch.qos.logback.classic.Level
 import com.google.gson.JsonObject
 import jp.nephy.jsonkt.*
+import jp.nephy.penicillin.PenicillinClient
 import java.nio.file.Paths
 
 class Config(override val json: JsonObject): JsonModel {
@@ -31,10 +32,17 @@ class Config(override val json: JsonObject): JsonModel {
     val accounts by json.byModelList<Account>()
 
     class Account(override val json: JsonObject): JsonModel {
-        val id by json.byLong
-        private val sn by json.byString
-        val displayName by lazy { "@$sn" }
-        val fullName by lazy { "$displayName (ID: $id)" }
+        val user by lazy {
+            PenicillinClient {
+                account {
+                    application(ck, cs)
+                    token(at, ats)
+                }
+            }.use {
+                it.account.verifyCredentials().complete().result
+            }
+        }
+
         val ck by json.byString
         val cs by json.byString
         val at by json.byString

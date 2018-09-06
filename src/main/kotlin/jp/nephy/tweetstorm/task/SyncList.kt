@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 class SyncList(override val manager: TaskManager): RegularTask(5, TimeUnit.MINUTES) {
     override fun run() {
         val followingIds = if (manager.account.syncListIncludeSelf) {
-            manager.twitter.friend.listIds(count = 5000).complete().untilLast().allIds + manager.account.id
+            manager.twitter.friend.listIds(count = 5000).complete().untilLast().allIds + manager.account.user.id
         } else {
             manager.twitter.friend.listIds(count = 5000).complete().untilLast().allIds
         }

@@ -8,7 +8,7 @@ class Fetcher {
     private val managers = CopyOnWriteArrayList<TaskManager>()
 
     fun start(stream: AuthenticatedStream) {
-        val manager = managers.find { it.account.id == stream.account.id }?.also {
+        val manager = managers.find { it.account.user.id == stream.account.user.id }?.also {
             it.register(stream)
         } ?: TaskManager(stream).also {
             managers.add(it)
@@ -16,8 +16,8 @@ class Fetcher {
         }
 
         manager.wait(stream)
-        if (manager.shouldTerminate && managers.removeIf { it.account.id == stream.account.id }) {
-            logger.debug { "Task Manager: ${manager.account.fullName} will terminate." }
+        if (manager.shouldTerminate && managers.removeIf { it.account.user.id == stream.account.user.id }) {
+            logger.debug { "Task Manager: @${manager.account.user.screenName} will terminate." }
             manager.close()
         }
     }

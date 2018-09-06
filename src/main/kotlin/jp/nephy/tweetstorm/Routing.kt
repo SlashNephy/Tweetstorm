@@ -75,23 +75,23 @@ fun Route.getUser() {
         try {
             call.respondWrite(ContentType.Application.Json, HttpStatusCode.OK) {
                 if (account != null && !tweetstormConfig.skipAuth && !authOK) {
-                    logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) requested account-token authentication." }
+                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) requested account-token authentication." }
 
                     val preStream = PreAuthenticatedStream(this, call.request, account)
                     preStream.handle()
 
                     if (preStream.isSuccess) {
                         authOK = true
-                        logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has passed account-token authentication. Start streaming." }
+                        logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has passed account-token authentication. Start streaming." }
                     } else {
-                        logger.warn { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has failed account-token authentication." }
+                        logger.warn { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has failed account-token authentication." }
                     }
                 }
 
                 if (account != null && authOK) {
-                    logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) connected with parameter ${call.request.queryParameters.toMap()}." }
+                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) connected with parameter ${call.request.queryParameters.toMap()}." }
                     AuthenticatedStream(this, call.request, account).handle()
-                    logger.info { "Client: ${account.fullName} (${call.request.origin.remoteHost}) has disconnected." }
+                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has disconnected." }
                 } else {
                     logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected." }
                     SampleStream(this, call.request).handle()
