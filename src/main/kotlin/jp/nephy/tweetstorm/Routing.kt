@@ -1,10 +1,14 @@
 package jp.nephy.tweetstorm
 
+import io.ktor.application.ApplicationCall
 import io.ktor.application.call
 import io.ktor.features.origin
 import io.ktor.html.respondHtmlTemplate
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.pipeline.PipelineContext
+import io.ktor.request.httpMethod
+import io.ktor.request.path
 import io.ktor.request.receiveParameters
 import io.ktor.response.respond
 import io.ktor.response.respondWrite
@@ -203,6 +207,20 @@ fun Route.authByToken() {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+suspend fun PipelineContext<Unit, ApplicationCall>.notFound() {
+    call.respondHtmlTemplate(NavLayout(), HttpStatusCode.NotFound) {
+        navContent {
+            div("alert alert-dismissible alert-danger") {
+                h4 {
+                    span("far fa-sad-tear")
+                    +" 404 Page Not Found"
+                }
+                p { +"${call.request.httpMethod.value.toUpperCase()} ${call.request.path()}" }
             }
         }
     }
