@@ -1,7 +1,9 @@
 package jp.nephy.tweetstorm
 
 import io.ktor.application.install
+import io.ktor.features.DefaultHeaders
 import io.ktor.features.XForwardedHeaderSupport
+import io.ktor.http.HttpHeaders
 import io.ktor.routing.Routing
 import io.ktor.server.engine.applicationEngineEnvironment
 import io.ktor.server.engine.connector
@@ -20,6 +22,9 @@ fun main(args: Array<String>) {
         module {
             install(RequestLogging)
             install(XForwardedHeaderSupport)
+            install(DefaultHeaders) {
+                header(HttpHeaders.Server, "Tweetstorm")
+            }
             install(Routing) {
                 getTop()
                 getUser()
