@@ -53,7 +53,7 @@ internal class RequestLogging private constructor(private val monitor: Applicati
             pipeline.intercept(phase) {
                 proceed()
                 if (!feature.shouldIgnore(call)) {
-                    logger.info { "[${call.response.status()?.value ?: " - "}] ${call.request.httpMethod.value.toUpperCase()} ${call.request.path()} (from ${call.request.origin.remoteHost} with UserAgent: \"${call.request.userAgent().orEmpty()}\")" }
+                    logger.info { "[${call.response.status()?.value ?: " - "}] ${call.request.httpMethod.value.toUpperCase()} ${call.request.path()}\nfrom ${call.request.origin.remoteHost} with \"${call.request.userAgent().orEmpty()}\"" }
                 }
             }
             return feature
