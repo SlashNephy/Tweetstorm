@@ -9,7 +9,7 @@ plugins {
 }
 
 application {
-    mainClassName = "jp.nephy.tweetstorm.AppKt"
+    mainClassName = "jp.nephy.tweetstorm.Tweetstorm"
 }
 
 group = "jp.nephy"
