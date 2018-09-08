@@ -4,15 +4,16 @@ import ch.qos.logback.classic.Level
 import com.google.gson.JsonObject
 import jp.nephy.jsonkt.*
 import jp.nephy.penicillin.PenicillinClient
+import java.nio.file.Path
 import java.nio.file.Paths
 
 class Config(override val json: JsonObject): JsonModel {
     companion object {
-        private val configPath = Paths.get("config.json")
+        private val defaultConfigPath = Paths.get("config.json")
 
-        fun load(): Config {
+        fun load(configPath: Path?): Config {
             return try {
-                configPath.parse()
+                (configPath ?: defaultConfigPath).parse()
             } catch (e: Exception) {
                 throw IllegalStateException("config.json is invalid.")
             }
