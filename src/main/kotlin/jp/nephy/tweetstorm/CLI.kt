@@ -1,7 +1,6 @@
 package jp.nephy.tweetstorm
 
 import org.apache.commons.cli.*
-import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -35,7 +34,7 @@ fun parseCommandLine(args: Array<String>): CLIArguments {
         printHelpAndExit(options)
     }
 
-    val configPath = result.getOptionValue("config")?.split(File.separatorChar)?.let { Paths.get(it.first(), *it.drop(1).toTypedArray()) }
+    val configPath = result.getOptionValue("config")?.let { Paths.get(it) }
     return CLIArguments(configPath)
 }
 
