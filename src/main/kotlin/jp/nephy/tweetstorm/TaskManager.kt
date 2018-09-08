@@ -18,10 +18,10 @@ import java.util.concurrent.TimeUnit
 class TaskManager(initialStream: AuthenticatedStream): Closeable {
     val account = initialStream.account
     private val logger by lazy { logger("Tweetstorm.TaskManager (@${account.user.screenName})") }
-    private val executor = if (tweetstormConfig.threadsPerAccount < 1) {
+    private val executor = if (Tweetstorm.config.threadsPerAccount < 1) {
         Executors.newCachedThreadPool()
     } else {
-        Executors.newFixedThreadPool(tweetstormConfig.threadsPerAccount)
+        Executors.newFixedThreadPool(Tweetstorm.config.threadsPerAccount)
     }
     val twitter = PenicillinClient {
         account {

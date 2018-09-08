@@ -74,11 +74,11 @@ fun Route.getUser() {
         val strict = call.request.headers.parseAuthorizationHeaderStrict(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
         val simple = call.request.headers.parseAuthorizationHeaderSimple()
         val account = strict ?: simple
-        var authOK = strict != null || (tweetstormConfig.skipAuth && account != null)
+        var authOK = strict != null || (Tweetstorm.config.skipAuth && account != null)
 
         try {
             call.respondWrite(ContentType.Application.Json, HttpStatusCode.OK) {
-                if (account != null && !tweetstormConfig.skipAuth && !authOK) {
+                if (account != null && !Tweetstorm.config.skipAuth && !authOK) {
                     logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) requested account-token authentication." }
 
                     val preStream = PreAuthenticatedStream(this, call.request, account)

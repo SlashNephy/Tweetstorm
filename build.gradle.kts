@@ -30,6 +30,7 @@ dependencies {
     compile("org.jetbrains.kotlinx:atomicfu:0.11.3")
 
     compile("jp.nephy:penicillin:3.0.5")
+    compile("commons-cli:commons-cli:1.4")
 
     compile("io.github.microutils:kotlin-logging:1.5.9")
     compile("ch.qos.logback:logback-core:1.2.3")
@@ -52,7 +53,7 @@ kotlin {
 val fatJar = task("fatJar", type = Jar::class) {
     baseName = "${project.name}-full"
     manifest {
-        attributes["Main-Class"] = "jp.nephy.tweetstorm.AppKt"
+        attributes["Main-Class"] = "jp.nephy.tweetstorm.Tweetstorm"
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY")

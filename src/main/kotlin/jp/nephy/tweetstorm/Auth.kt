@@ -21,7 +21,7 @@ fun Headers.parseAuthorizationHeaderStrict(method: HttpMethod, url: String, quer
         it.first() to URLDecoder.decode(it.last(), Charsets.UTF_8.name()).removeSurrounding("\"")
     }.toMap()
 
-    return tweetstormConfig.accounts.filter {
+    return Tweetstorm.config.accounts.filter {
         it.ck == authorizationData["oauth_consumer_key"] && it.at == authorizationData["oauth_token"]
     }.find { account ->
         val signatureParam = authorizationData.toSortedMap()
@@ -56,5 +56,5 @@ fun Headers.parseAuthorizationHeaderSimple(): Config.Account? {
     }.toMap()
 
     val id = authorizationData["oauth_token"]?.split("-")?.firstOrNull()?.toLongOrNull() ?: return null
-    return tweetstormConfig.accounts.find { it.user.id == id }
+    return Tweetstorm.config.accounts.find { it.user.id == id }
 }
