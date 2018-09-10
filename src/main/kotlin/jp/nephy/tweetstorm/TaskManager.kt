@@ -9,12 +9,9 @@ import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
-import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.*
 import java.io.Closeable
 import java.io.IOException
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.TimeUnit
 
@@ -27,7 +24,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
             token(account.at, account.ats)
         }
     }
-    private val streams = CopyOnWriteArrayList<AuthenticatedStream>().also {
+    private val streams = CopyOnWriteArraySet<AuthenticatedStream>().also {
         it.add(initialStream)
     }
     private val tasks = mutableListOf<RunnableTask>().also {
@@ -72,22 +69,23 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
     private val jobs = CopyOnWriteArraySet<Job>()
 
-    val shouldTerminate: Boolean
-        get() = streams.isEmpty()
+    fun anyClients(): Boolean {
+        return streams.isNotEmpty()
+    }
 
-    @Synchronized
     fun register(stream: AuthenticatedStream) {
-        if (stream !in streams && streams.add(stream)) {
+        if (synchronized(stream) { streams.add(stream) }) {
             startTargetedTasks(stream)
             logger.debug { "A Stream has been registered to @${account.user.screenName}." }
         }
     }
 
-    @Synchronized
-    fun unregister(stream: AuthenticatedStream) {
-        if (stream in streams && streams.remove(stream)) {
-            jobs.filter { it.isActive }.forEach {
-                it.cancel()
+    private fun unregister(stream: AuthenticatedStream) {
+        if (synchronized(stream) { streams.remove(stream) }) {
+            runBlocking {
+                jobs.filter { it.isActive }.forEach {
+                    it.cancelAndJoin()
+                }
             }
             logger.debug { "A Stream has been unregistered from @${account.user.screenName}." }
         }
@@ -155,17 +153,21 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         tasks.forEach {
             jobs += launch {
                 it.logger.debug { "RunnableTask: ${it.javaClass.simpleName} started." }
-                while (isActive && !shouldTerminate) {
+
+                while (isActive) {
                     try {
                         it.run()
                     } catch (e: CancellationException) {
-                        it.close()
                         break
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while task." }
                     }
                 }
-                it.logger.debug { "RunnableTask: ${it.javaClass.simpleName} will terminate." }
+
+                withContext(NonCancellable) {
+                    it.close()
+                    it.logger.debug { "RunnableTask: ${it.javaClass.simpleName} will terminate." }
+                }
             }
         }
     }
@@ -177,11 +179,12 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                     it.run(target)
                     it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} finished." }
                 } catch (e: CancellationException) {
-                    it.close()
                 } catch (e: Exception) {
                     it.logger.error(e) { "An error occurred while targeted task." }
                 } finally {
-                    it.close()
+                    withContext(NonCancellable) {
+                        it.close()
+                    }
                 }
             }
         }
@@ -189,36 +192,29 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     private fun startRegularTasks() {
         regularTasks.forEach {
             jobs += launch {
-                while (isActive && !shouldTerminate) {
+                while (isActive) {
                     it.logger.debug { "RegularTask: ${it.javaClass.simpleName} started." }
                     try {
                         it.run()
                         it.logger.debug { "RegularTask: ${it.javaClass.simpleName} finished." }
+                        it.unit.sleep(it.interval)
                     } catch (e: CancellationException) {
-                        it.close()
                         break
                     } catch (e: Exception) {
                         it.logger.error(e) { "An error occurred while regular task." }
-                    } finally {
-                        try {
-                            it.unit.sleep(it.interval)
-                        } catch (e: CancellationException) {
-                            it.close()
-                            break
-                        }
+                        it.unit.sleep(it.interval)
                     }
                 }
-                it.logger.debug { "RegularTask: ${it.javaClass.simpleName} will terminate." }
+
+                withContext(NonCancellable) {
+                    it.close()
+                    it.logger.debug { "RegularTask: ${it.javaClass.simpleName} will terminate." }
+                }
             }
         }
     }
 
     override fun close() {
         twitter.close()
-        streams.clear()
-        tasks.clear()
-        targetedTasks.clear()
-        jobs.clear()
-        regularTasks.clear()
     }
 }
