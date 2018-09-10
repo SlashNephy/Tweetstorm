@@ -5,7 +5,6 @@ import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.TaskManager
 import jp.nephy.tweetstorm.builder.newDirectMessage
-import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
@@ -50,13 +49,12 @@ class DirectMessage(override val manager: TaskManager): RunnableTask() {
             }
 
             delay(sleepSec, TimeUnit.SECONDS)
-        } catch (e: CancellationException) {
-            return
-        } catch (e: Exception) {
-            if (e is PenicillinException && e.error == TwitterErrorMessage.RateLimitExceeded) {
+        } catch (e: PenicillinException) {
+            // Rate limit exceeded
+            if (e.error == TwitterErrorMessage.RateLimitExceeded) {
                 delay(10, TimeUnit.SECONDS)
             } else {
-                logger.error(e) { "An error occurred while getting direct messages." }
+                logger.error(e) { "An error occurred while getting timeline." }
             }
         }
     }
