@@ -9,7 +9,6 @@ import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.penicillin.models.CardState
 import jp.nephy.penicillin.models.Status
 import jp.nephy.tweetstorm.TaskManager
-import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
@@ -49,11 +48,9 @@ abstract class TimelineTask(final override val manager: TaskManager): RunnableTa
             }
 
             delay(sleepSec.toLong(), TimeUnit.SECONDS)
-        } catch (e: CancellationException) {
-            return
-        } catch (e: Exception) {
+        } catch (e: PenicillinException) {
             // Rate limit exceeded
-            if (e is PenicillinException && e.error == TwitterErrorMessage.RateLimitExceeded) {
+            if (e.error == TwitterErrorMessage.RateLimitExceeded) {
                 delay(10, TimeUnit.SECONDS)
             } else {
                 logger.error(e) { "An error occurred while getting timeline." }

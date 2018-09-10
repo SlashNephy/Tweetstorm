@@ -11,7 +11,6 @@ import jp.nephy.tweetstorm.builder.ListEventType
 import jp.nephy.tweetstorm.builder.StatusEventType
 import jp.nephy.tweetstorm.builder.UserEventType
 import jp.nephy.tweetstorm.builder.toEventType
-import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
@@ -76,13 +75,12 @@ class Activity(override val manager: TaskManager): RunnableTask() {
                     delay(10, TimeUnit.SECONDS)
                 }
             }
-        } catch (e: CancellationException) {
-            return
-        } catch (e: Exception) {
-            if (e is PenicillinException && e.error == TwitterErrorMessage.RateLimitExceeded) {
+        } catch (e: PenicillinException) {
+            // Rate limit exceeded
+            if (e.error == TwitterErrorMessage.RateLimitExceeded) {
                 delay(10, TimeUnit.SECONDS)
             } else {
-                logger.error(e) { "An error occurred while getting activities." }
+                logger.error(e) { "An error occurred while getting timeline." }
             }
         }
     }
