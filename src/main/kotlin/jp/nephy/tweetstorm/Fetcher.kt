@@ -1,11 +1,11 @@
 package jp.nephy.tweetstorm
 
 import jp.nephy.tweetstorm.session.AuthenticatedStream
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CopyOnWriteArraySet
 
 class Fetcher {
     private val logger by lazy { logger("Tweetstorm.Fetcher") }
-    private val managers = CopyOnWriteArrayList<TaskManager>()
+    private val managers = CopyOnWriteArraySet<TaskManager>()
 
     fun start(stream: AuthenticatedStream) {
         val manager = managers.find { it.account.user.id == stream.account.user.id }?.also {
@@ -16,7 +16,7 @@ class Fetcher {
         }
 
         manager.wait(stream)
-        if (manager.shouldTerminate && managers.removeIf { it.account.user.id == stream.account.user.id }) {
+        if (!manager.anyClients() && managers.removeIf { it.account.user.id == stream.account.user.id }) {
             logger.debug { "Task Manager: @${manager.account.user.screenName} will terminate." }
             manager.close()
         }
