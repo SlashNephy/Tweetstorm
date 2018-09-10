@@ -1,11 +1,12 @@
 package jp.nephy.tweetstorm.task
 
 import jp.nephy.tweetstorm.TaskManager
+import kotlinx.coroutines.experimental.delay
 import java.util.concurrent.TimeUnit
 
 class Heartbeat(override val manager: TaskManager): RunnableTask() {
-    override fun run() {
+    override suspend fun run() {
         manager.heartbeat()
-        TimeUnit.SECONDS.sleep(10)
+        delay(10, TimeUnit.SECONDS)
     }
 }
