@@ -9,6 +9,7 @@ import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.penicillin.models.CardState
 import jp.nephy.penicillin.models.Status
 import jp.nephy.tweetstorm.TaskManager
+import jp.nephy.tweetstorm.config
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
@@ -25,7 +26,7 @@ abstract class TimelineTask(final override val manager: TaskManager): RunnableTa
     private var lastId: Long? = null
     suspend fun timeline(sleepSec: Long, source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>) {
         try {
-            val timeline = source(lastId).awaitWithTimeout(10, TimeUnit.SECONDS) ?: return
+            val timeline = source(lastId).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: return
             if (timeline.isNotEmpty()) {
                 if (lastId != null) {
                     timeline.reversed().forEach {

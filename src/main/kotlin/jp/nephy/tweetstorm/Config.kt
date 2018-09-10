@@ -27,6 +27,8 @@ class Config(override val json: JsonObject): JsonModel {
 
     val maxConnections by json.byNullableInt("max_connections")
 
+    val apiTimeoutSec by json.byLong("api_timeout_sec") { 3 }
+
     private val logLevelString by json.byString("log_level") { "info" }
     val logLevel by lazy { Level.toLevel(logLevelString, Level.INFO)!! }
 

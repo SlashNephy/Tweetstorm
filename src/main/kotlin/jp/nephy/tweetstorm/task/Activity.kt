@@ -11,6 +11,7 @@ import jp.nephy.tweetstorm.builder.ListEventType
 import jp.nephy.tweetstorm.builder.StatusEventType
 import jp.nephy.tweetstorm.builder.UserEventType
 import jp.nephy.tweetstorm.builder.toEventType
+import jp.nephy.tweetstorm.config
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
@@ -29,7 +30,7 @@ class Activity(override val manager: TaskManager): RunnableTask() {
     private var lastId: Long? = null
     override suspend fun run() {
         try {
-            val activities = twitter.activity.aboutMe().awaitWithTimeout(10, TimeUnit.SECONDS) ?: return
+            val activities = twitter.activity.aboutMe().awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: return
             if (activities.isNotEmpty()) {
                 if (lastId != null) {
                     activities.filter { lastId!! < it.createdAt.date.time }.reversed().forEach { event ->

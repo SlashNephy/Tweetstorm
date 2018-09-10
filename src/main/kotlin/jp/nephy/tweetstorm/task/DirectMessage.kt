@@ -5,6 +5,7 @@ import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.TaskManager
 import jp.nephy.tweetstorm.builder.newDirectMessage
+import jp.nephy.tweetstorm.config
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
@@ -15,7 +16,7 @@ class DirectMessage(override val manager: TaskManager): RunnableTask() {
     private var lastId: Long? = null
     override suspend fun run() {
         try {
-            val messages = manager.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(10, TimeUnit.SECONDS) ?: return
+            val messages = manager.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: return
             if (messages.result.events.isNotEmpty()) {
                 if (lastId != null) {
                     messages.result.events.asSequence().filter { it.type == "message_create" }.filter { lastId!! < it.id.toLong() }.toList().reversed().forEach {
