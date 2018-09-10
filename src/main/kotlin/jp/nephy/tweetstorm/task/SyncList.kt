@@ -6,11 +6,11 @@ import jp.nephy.tweetstorm.TaskManager
 import java.util.concurrent.TimeUnit
 
 class SyncList(override val manager: TaskManager): RegularTask(5, TimeUnit.MINUTES) {
-    override fun run() {
+    override suspend fun run() {
         val followingIds = if (manager.account.syncListIncludeSelf) {
-            manager.twitter.friend.listIds(count = 5000).complete().untilLast().allIds + manager.account.user.id
+            manager.twitter.friend.listIds(count = 5000).await().untilLast().allIds + manager.account.user.id
         } else {
-            manager.twitter.friend.listIds(count = 5000).complete().untilLast().allIds
+            manager.twitter.friend.listIds(count = 5000).await().untilLast().allIds
         }
 
         if (followingIds.size > 5000) {
@@ -18,12 +18,12 @@ class SyncList(override val manager: TaskManager): RegularTask(5, TimeUnit.MINUT
             return
         }
 
-        val listMemberIds = manager.twitter.list.members(listId = manager.account.listId, count = 5000).complete().untilLast().allUsers.map { it.id }
+        val listMemberIds = manager.twitter.list.members(listId = manager.account.listId, count = 5000).await().untilLast().allUsers.map { it.id }
 
         val willBeRemoved = listMemberIds - followingIds
         if (willBeRemoved.isNotEmpty()) {
             willBeRemoved.chunked(100).forEach {
-                manager.twitter.list.removeMembers(listId = manager.account.listId, userIds = it).complete()
+                manager.twitter.list.removeMembers(listId = manager.account.listId, userIds = it).await()
             }
             logger.debug { "Removing ${willBeRemoved.size} user(s)." }
         }
@@ -31,7 +31,7 @@ class SyncList(override val manager: TaskManager): RegularTask(5, TimeUnit.MINUT
         val willBeAdded = followingIds - listMemberIds
         if (willBeAdded.isNotEmpty()) {
             willBeAdded.chunked(100).forEach {
-                manager.twitter.list.addMembers(listId = manager.account.listId, userIds = it).complete()
+                manager.twitter.list.addMembers(listId = manager.account.listId, userIds = it).await()
             }
             logger.debug { "Adding ${willBeAdded.size} user(s)." }
         }

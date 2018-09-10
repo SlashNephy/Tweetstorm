@@ -16,13 +16,13 @@ abstract class Task: Closeable {
 }
 
 abstract class RunnableTask: Task() {
-    abstract fun run()
+    abstract suspend fun run()
 }
 
 abstract class TargetedFetchTask: Task() {
-    abstract fun run(target: AuthenticatedStream)
+    abstract suspend fun run(target: AuthenticatedStream)
 }
 
 abstract class RegularTask(val interval: Long, val unit: TimeUnit): Task() {
-    abstract fun run()
+    abstract suspend fun run()
 }

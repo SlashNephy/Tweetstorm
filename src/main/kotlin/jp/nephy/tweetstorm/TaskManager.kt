@@ -9,20 +9,18 @@ import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.*
+import kotlinx.coroutines.experimental.CancellationException
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.launch
 import java.io.Closeable
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.Executors
+import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.TimeUnit
 
 class TaskManager(initialStream: AuthenticatedStream): Closeable {
     val account = initialStream.account
     private val logger by lazy { logger("Tweetstorm.TaskManager (@${account.user.screenName})") }
-    private val executor = if (Tweetstorm.config.threadsPerAccount < 1) {
-        Executors.newCachedThreadPool()
-    } else {
-        Executors.newFixedThreadPool(Tweetstorm.config.threadsPerAccount)
-    }
     val twitter = PenicillinClient {
         account {
             application(account.ck, account.cs)
@@ -32,7 +30,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     private val streams = CopyOnWriteArrayList<AuthenticatedStream>().also {
         it.add(initialStream)
     }
-    private val tasks: List<RunnableTask> = mutableListOf<RunnableTask>().also {
+    private val tasks = mutableListOf<RunnableTask>().also {
         if (account.listId != null) {
             it.add(ListTimeline(this))
 
@@ -62,16 +60,18 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         }
         it.add(Heartbeat(this))
     }
-    private val targetedTasks: List<TargetedFetchTask> = mutableListOf<TargetedFetchTask>().also {
+    private val targetedTasks = mutableListOf<TargetedFetchTask>().also {
         if (account.enableFriends) {
             it.add(Friends(this))
         }
     }
-    private val regularTasks: List<RegularTask> = mutableListOf<RegularTask>().also {
+    private val regularTasks = mutableListOf<RegularTask>().also {
         if (account.syncListFollowing && account.listId != null) {
             it.add(SyncList(this))
         }
     }
+    private val jobs = CopyOnWriteArraySet<Job>()
+
     val shouldTerminate: Boolean
         get() = streams.isEmpty()
 
@@ -86,6 +86,9 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     @Synchronized
     fun unregister(stream: AuthenticatedStream) {
         if (stream in streams && streams.remove(stream)) {
+            jobs.filter { it.isActive }.forEach {
+                it.cancel()
+            }
             logger.debug { "A Stream has been unregistered from @${account.user.screenName}." }
         }
     }
@@ -150,12 +153,12 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
     private fun startTasks() {
         tasks.forEach {
-            executor.execute {
+            jobs += launch {
                 it.logger.debug { "RunnableTask: ${it.javaClass.simpleName} started." }
-                while (!shouldTerminate) {
+                while (isActive && !shouldTerminate) {
                     try {
                         it.run()
-                    } catch (e: InterruptedException) {
+                    } catch (e: CancellationException) {
                         it.close()
                         break
                     } catch (e: Exception) {
@@ -168,12 +171,12 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
     private fun startTargetedTasks(target: AuthenticatedStream) {
         targetedTasks.forEach {
-            executor.execute {
+            jobs += launch {
                 it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} started." }
                 try {
                     it.run(target)
                     it.logger.debug { "TargetedFetchTask: ${it.javaClass.simpleName} finished." }
-                } catch (e: InterruptedException) {
+                } catch (e: CancellationException) {
                     it.close()
                 } catch (e: Exception) {
                     it.logger.error(e) { "An error occurred while targeted task." }
@@ -185,13 +188,13 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
     private fun startRegularTasks() {
         regularTasks.forEach {
-            executor.execute {
-                while (!shouldTerminate) {
+            jobs += launch {
+                while (isActive && !shouldTerminate) {
                     it.logger.debug { "RegularTask: ${it.javaClass.simpleName} started." }
                     try {
                         it.run()
                         it.logger.debug { "RegularTask: ${it.javaClass.simpleName} finished." }
-                    } catch (e: InterruptedException) {
+                    } catch (e: CancellationException) {
                         it.close()
                         break
                     } catch (e: Exception) {
@@ -199,7 +202,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                     } finally {
                         try {
                             it.unit.sleep(it.interval)
-                        } catch (e: InterruptedException) {
+                        } catch (e: CancellationException) {
                             it.close()
                             break
                         }
@@ -211,6 +214,11 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
 
     override fun close() {
-        executor.shutdownNow()
+        twitter.close()
+        streams.clear()
+        tasks.clear()
+        targetedTasks.clear()
+        jobs.clear()
+        regularTasks.clear()
     }
 }

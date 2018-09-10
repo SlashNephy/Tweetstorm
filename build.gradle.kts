@@ -29,7 +29,7 @@ dependencies {
     compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.11")
     compile("org.jetbrains.kotlinx:atomicfu:0.11.3")
 
-    compile("jp.nephy:penicillin:3.0.5")
+    compile("jp.nephy:penicillin:3.0.6")
     compile("commons-cli:commons-cli:1.4")
 
     compile("io.github.microutils:kotlin-logging:1.5.9")

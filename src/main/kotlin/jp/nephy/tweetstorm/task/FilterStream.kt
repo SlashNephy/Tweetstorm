@@ -6,20 +6,20 @@ import jp.nephy.tweetstorm.TaskManager
 
 class FilterStream(override val manager: TaskManager): RunnableTask() {
     private val stream = manager.twitter.stream.filter(track = manager.account.filterStreamTracks, follow = manager.account.filterStreamFollows).complete().listen(object: FilterStreamListener {
-        override fun onRawJson(json: JsonObject) {
+        override suspend fun onRawJson(json: JsonObject) {
             manager.emit(json)
         }
 
-        override fun onConnect() {
+        override suspend fun onConnect() {
             logger.info { "Connected to FilterStream." }
         }
 
-        override fun onDisconnect() {
+        override suspend fun onDisconnect() {
             logger.warn { "Disconnected from FilterStream." }
         }
     })
 
-    override fun run() {
+    override suspend fun run() {
         stream.start(wait = true, autoReconnect = true)
     }
 

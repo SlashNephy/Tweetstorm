@@ -11,6 +11,9 @@ import jp.nephy.tweetstorm.builder.ListEventType
 import jp.nephy.tweetstorm.builder.StatusEventType
 import jp.nephy.tweetstorm.builder.UserEventType
 import jp.nephy.tweetstorm.builder.toEventType
+import kotlinx.coroutines.experimental.CancellationException
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -26,13 +29,12 @@ class Activity(override val manager: TaskManager): RunnableTask() {
     }
 
     private var lastId: Long? = null
-    override fun run() {
+    override suspend fun run() {
         try {
-            val activities = twitter.activity.aboutMe().complete()
+            val activities = twitter.activity.aboutMe().await()
             if (activities.isNotEmpty()) {
                 if (lastId != null) {
                     activities.filter { lastId!! < it.createdAt.date.time }.reversed().forEach { event ->
-                        logger.trace { "Event = $event" }
                         val type = event.action.toEventType() ?: return@forEach
                         when (type) {
                             is StatusEventType, is ListEventType -> {
@@ -68,20 +70,20 @@ class Activity(override val manager: TaskManager): RunnableTask() {
                 val duration = Duration.between(Instant.now(), activities.headers.rateLimit.resetAt!!.toInstant())
                 if (activities.headers.rateLimit.remaining!! < 2) {
                     streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${activities.headers.rateLimit.resetAt})" }
-                    TimeUnit.SECONDS.sleep(duration.seconds)
+                    delay(duration)
                 } else if (duration.seconds > 3 && activities.headers.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
                     streamLogger.warn { "Rate limit: API calls (/${activities.request.url}) seem to be frequent than expected so consider adjusting `activity_refresh_sec` value in config.json. Sleep 10 secs. (${activities.headers.rateLimit.remaining}/${activities.headers.rateLimit.limit}, Reset at ${activities.headers.rateLimit.resetAt})" }
-                    TimeUnit.SECONDS.sleep(10)
+                    delay(10, TimeUnit.SECONDS)
                 }
             }
+        } catch (e: CancellationException) {
+            return
         } catch (e: Exception) {
             if (e is PenicillinException && e.error == TwitterErrorMessage.RateLimitExceeded) {
-                TimeUnit.SECONDS.sleep(10)
+                delay(10, TimeUnit.SECONDS)
             } else {
                 logger.error(e) { "An error occurred while getting activities." }
             }
-        } finally {
-            TimeUnit.SECONDS.sleep(sleepSec)
         }
     }
 
