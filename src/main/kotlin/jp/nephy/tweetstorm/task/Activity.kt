@@ -18,7 +18,6 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class Activity(override val manager: TaskManager): RunnableTask() {
-    private val sleepSec = manager.account.activityInterval.toLong()
     private val twitter = PenicillinClient {
         account {
             application(OfficialClient.OAuth1a.TwitterForiPhone)
@@ -30,7 +29,7 @@ class Activity(override val manager: TaskManager): RunnableTask() {
     private var lastId: Long? = null
     override suspend fun run() {
         try {
-            val activities = twitter.activity.aboutMe().await()
+            val activities = twitter.activity.aboutMe().awaitWithTimeout(10, TimeUnit.SECONDS) ?: return
             if (activities.isNotEmpty()) {
                 if (lastId != null) {
                     activities.filter { lastId!! < it.createdAt.date.time }.reversed().forEach { event ->
@@ -70,11 +69,13 @@ class Activity(override val manager: TaskManager): RunnableTask() {
                 if (activities.headers.rateLimit.remaining!! < 2) {
                     streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${activities.headers.rateLimit.resetAt})" }
                     delay(duration)
-                } else if (duration.seconds > 3 && activities.headers.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
+                } else if (duration.seconds > 3 && activities.headers.rateLimit.remaining!! * manager.account.activityInterval.toDouble() / duration.seconds < 1) {
                     streamLogger.warn { "Rate limit: API calls (/${activities.request.url}) seem to be frequent than expected so consider adjusting `activity_refresh_sec` value in config.json. Sleep 10 secs. (${activities.headers.rateLimit.remaining}/${activities.headers.rateLimit.limit}, Reset at ${activities.headers.rateLimit.resetAt})" }
                     delay(10, TimeUnit.SECONDS)
                 }
             }
+
+            delay(manager.account.activityInterval, TimeUnit.SECONDS)
         } catch (e: PenicillinException) {
             // Rate limit exceeded
             if (e.error == TwitterErrorMessage.RateLimitExceeded) {

@@ -8,7 +8,7 @@ import org.slf4j.event.Level
 class StreamLogger(private val manager: TaskManager, name: String) {
     private val logger = logger(name)
     
-    fun error(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
+    suspend fun error(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
         if (exception != null) {
             logger.error(exception, text)
         } else {
@@ -20,7 +20,7 @@ class StreamLogger(private val manager: TaskManager, name: String) {
         }
     }
 
-    fun warn(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
+    suspend fun warn(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
         if (exception != null) {
             logger.warn(exception, text)
         } else {
@@ -32,7 +32,7 @@ class StreamLogger(private val manager: TaskManager, name: String) {
         }
     }
     
-    fun info(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
+    suspend fun info(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
         if (exception != null) {
             logger.info(exception, text)
         } else {
@@ -44,7 +44,7 @@ class StreamLogger(private val manager: TaskManager, name: String) {
         }
     }
 
-    fun debug(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
+    suspend fun debug(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
         if (exception != null) {
             logger.debug(exception, text)
         } else {
@@ -56,7 +56,7 @@ class StreamLogger(private val manager: TaskManager, name: String) {
         }
     }
 
-    fun trace(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
+    suspend fun trace(exception: Throwable? = null, stream: AuthenticatedStream? = null, text: () -> Any?) {
         if (exception != null) {
             logger.trace(exception, text)
         } else {
@@ -68,7 +68,7 @@ class StreamLogger(private val manager: TaskManager, name: String) {
         }
     }
 
-    private fun emitStatus(stream: AuthenticatedStream?, logLevel: Level, text: () -> Any?) {
+    private suspend fun emitStatus(stream: AuthenticatedStream?, logLevel: Level, text: () -> Any?) {
         if (stream != null) {
             manager.emit(stream, newStatus {
                 user {
