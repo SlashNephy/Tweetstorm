@@ -7,6 +7,6 @@ import java.util.concurrent.TimeUnit
 class Heartbeat(override val manager: TaskManager): RunnableTask() {
     override suspend fun run() {
         manager.heartbeat()
-        delay(10, TimeUnit.SECONDS)
+        delay(5, TimeUnit.SECONDS)
     }
 }
