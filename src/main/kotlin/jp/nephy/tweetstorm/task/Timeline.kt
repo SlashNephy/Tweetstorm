@@ -23,9 +23,9 @@ abstract class TimelineTask(final override val manager: TaskManager): RunnableTa
     }
 
     private var lastId: Long? = null
-    suspend fun timeline(sleepSec: Int, source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>) {
+    suspend fun timeline(sleepSec: Long, source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>) {
         try {
-            val timeline = source(lastId).await()
+            val timeline = source(lastId).awaitWithTimeout(10, TimeUnit.SECONDS) ?: return
             if (timeline.isNotEmpty()) {
                 if (lastId != null) {
                     timeline.reversed().forEach {
@@ -47,7 +47,7 @@ abstract class TimelineTask(final override val manager: TaskManager): RunnableTa
                 }
             }
 
-            delay(sleepSec.toLong(), TimeUnit.SECONDS)
+            delay(sleepSec, TimeUnit.SECONDS)
         } catch (e: PenicillinException) {
             // Rate limit exceeded
             if (e.error == TwitterErrorMessage.RateLimitExceeded) {

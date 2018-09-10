@@ -12,15 +12,13 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class DirectMessage(override val manager: TaskManager): RunnableTask() {
-    private val sleepSec = manager.account.messageInterval.toLong()
-
     private var lastId: Long? = null
     override suspend fun run() {
         try {
-            val messages = manager.twitter.directMessageEvent.list(count = 200).await()
+            val messages = manager.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(10, TimeUnit.SECONDS) ?: return
             if (messages.result.events.isNotEmpty()) {
                 if (lastId != null) {
-                    messages.result.events.filter { it.type == "message_create" }.filter { lastId!! < it.id.toLong() }.reversed().forEach {
+                    messages.result.events.asSequence().filter { it.type == "message_create" }.filter { lastId!! < it.id.toLong() }.toList().reversed().forEach {
                         manager.emit(newDirectMessage {
                             recipient {
                                 json["id"] = it.messageCreate.target.recipientId.toLong()
@@ -42,13 +40,13 @@ class DirectMessage(override val manager: TaskManager): RunnableTask() {
                 if (messages.headers.rateLimit.remaining!! < 2) {
                     streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${messages.headers.rateLimit.resetAt})" }
                     delay(duration)
-                } else if (duration.seconds > 3 && messages.headers.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
+                } else if (duration.seconds > 3 && messages.headers.rateLimit.remaining!! * manager.account.messageInterval.toDouble() / duration.seconds < 1) {
                     streamLogger.warn { "Rate limit: API calls (/${messages.request.url}) seem to be frequent than expected so consider adjusting `direct_message_refresh_sec` value in config.json. Sleep 10 secs. (${messages.headers.rateLimit.remaining}/${messages.headers.rateLimit.limit}, Reset at ${messages.headers.rateLimit.resetAt})" }
                     delay(10, TimeUnit.SECONDS)
                 }
             }
 
-            delay(sleepSec, TimeUnit.SECONDS)
+            delay(manager.account.messageInterval, TimeUnit.SECONDS)
         } catch (e: PenicillinException) {
             // Rate limit exceeded
             if (e.error == TwitterErrorMessage.RateLimitExceeded) {

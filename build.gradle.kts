@@ -9,7 +9,7 @@ plugins {
 }
 
 application {
-    mainClassName = "jp.nephy.tweetstorm.Tweetstorm"
+    mainClassName = "jp.nephy.tweetstorm.MainKt"
 }
 
 group = "jp.nephy"
@@ -23,13 +23,11 @@ repositories {
 dependencies {
     compile(kotlin("stdlib-jdk8"))
 
-    compile("io.ktor:ktor-server-core:$ktorVersion")
     compile("io.ktor:ktor-server-netty:$ktorVersion")
     compile("io.ktor:ktor-html-builder:$ktorVersion")
-    compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.11")
     compile("org.jetbrains.kotlinx:atomicfu:0.11.3")
 
-    compile("jp.nephy:penicillin:3.0.6")
+    compile("jp.nephy:penicillin:3.0.7")
     compile("commons-cli:commons-cli:1.4")
 
     compile("io.github.microutils:kotlin-logging:1.5.9")
@@ -53,7 +51,7 @@ kotlin {
 val fatJar = task("fatJar", type = Jar::class) {
     baseName = "${project.name}-full"
     manifest {
-        attributes["Main-Class"] = "jp.nephy.tweetstorm.Tweetstorm"
+        attributes["Main-Class"] = "jp.nephy.tweetstorm.MainKt"
     }
 
     @Suppress("IMPLICIT_CAST_TO_ANY")
