@@ -1,28 +1,24 @@
 package jp.nephy.tweetstorm.task
 
-import jp.nephy.tweetstorm.TaskManager
+import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.logger
 import jp.nephy.tweetstorm.session.AuthenticatedStream
-import jp.nephy.tweetstorm.session.StreamLogger
-import java.io.Closeable
+import jp.nephy.tweetstorm.task.data.ProduceData
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import java.util.concurrent.TimeUnit
 
-abstract class Task: Closeable {
-    val logger by lazy { logger("Tweetstorm.task.${javaClass.simpleName} (@${manager.account.user.screenName})") }
-    val streamLogger by lazy { StreamLogger(manager, "Tweetstorm.task.${javaClass.simpleName} (@${manager.account.user.screenName})") }
-    abstract val manager: TaskManager
-
-    override fun close() {}
+abstract class Task(val account: Config.Account) {
+    val logger by lazy { logger("Tweetstorm.task.${javaClass.simpleName} (@${account.user.screenName})") }
 }
 
-abstract class RunnableTask: Task() {
-    abstract suspend fun run()
+abstract class ProduceTask<D: ProduceData<*>>(account: Config.Account): Task(account) {
+    abstract val channel: ReceiveChannel<D>
 }
 
-abstract class TargetedFetchTask: Task() {
-    abstract suspend fun run(target: AuthenticatedStream)
+abstract class TargetedProduceTask<D: ProduceData<*>>(target: AuthenticatedStream): Task(target.account) {
+    abstract val channel: ReceiveChannel<D>
 }
 
-abstract class RegularTask(val interval: Long, val unit: TimeUnit): Task() {
+abstract class RegularTask(account: Config.Account, val interval: Long, val unit: TimeUnit): Task(account) {
     abstract suspend fun run()
 }

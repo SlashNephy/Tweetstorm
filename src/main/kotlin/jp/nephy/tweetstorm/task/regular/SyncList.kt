@@ -1,16 +1,17 @@
-package jp.nephy.tweetstorm.task
+package jp.nephy.tweetstorm.task.regular
 
 import jp.nephy.penicillin.core.allIds
 import jp.nephy.penicillin.core.allUsers
-import jp.nephy.tweetstorm.TaskManager
+import jp.nephy.tweetstorm.Config
+import jp.nephy.tweetstorm.task.RegularTask
 import java.util.concurrent.TimeUnit
 
-class SyncList(override val manager: TaskManager): RegularTask(5, TimeUnit.MINUTES) {
+class SyncList(account: Config.Account): RegularTask(account, 5, TimeUnit.MINUTES) {
     override suspend fun run() {
-        val followingIds = if (manager.account.syncListIncludeSelf) {
-            manager.twitter.friend.listIds(count = 5000).await().untilLast().allIds + manager.account.user.id
+        val followingIds = if (account.syncListIncludeSelf) {
+            account.twitter.friend.listIds(count = 5000).await().untilLast().allIds + account.user.id
         } else {
-            manager.twitter.friend.listIds(count = 5000).await().untilLast().allIds
+            account.twitter.friend.listIds(count = 5000).await().untilLast().allIds
         }
 
         if (followingIds.size > 5000) {
@@ -18,12 +19,12 @@ class SyncList(override val manager: TaskManager): RegularTask(5, TimeUnit.MINUT
             return
         }
 
-        val listMemberIds = manager.twitter.list.members(listId = manager.account.listId, count = 5000).await().untilLast().allUsers.map { it.id }
+        val listMemberIds = account.twitter.list.members(listId = account.listId, count = 5000).await().untilLast().allUsers.map { it.id }
 
         val willBeRemoved = listMemberIds - followingIds
         if (willBeRemoved.isNotEmpty()) {
             willBeRemoved.chunked(100).forEach {
-                manager.twitter.list.removeMembers(listId = manager.account.listId, userIds = it).await()
+                account.twitter.list.removeMembers(listId = account.listId, userIds = it).await()
             }
             logger.debug { "Removing ${willBeRemoved.size} user(s)." }
         }
@@ -31,7 +32,7 @@ class SyncList(override val manager: TaskManager): RegularTask(5, TimeUnit.MINUT
         val willBeAdded = followingIds - listMemberIds
         if (willBeAdded.isNotEmpty()) {
             willBeAdded.chunked(100).forEach {
-                manager.twitter.list.addMembers(listId = manager.account.listId, userIds = it).await()
+                account.twitter.list.addMembers(listId = account.listId, userIds = it).await()
             }
             logger.debug { "Adding ${willBeAdded.size} user(s)." }
         }

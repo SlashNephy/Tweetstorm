@@ -17,6 +17,7 @@ import java.io.IOException
 import java.io.Writer
 
 private const val delimiter = "\r\n"
+private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.StreamContent")
 
 class StreamContent(private val writer: suspend (writer: Writer) -> Unit): OutgoingContent.WriteChannelContent() {
     override val status = HttpStatusCode.OK
@@ -66,6 +67,7 @@ class StreamContent(private val writer: suspend (writer: Writer) -> Unit): Outgo
                     writeWrap(text)
                 }
             }
+            logger.trace { "Payload = $content" }
         }
 
         suspend fun emit(vararg pairs: Pair<String, Any?>) {
@@ -82,6 +84,7 @@ class StreamContent(private val writer: suspend (writer: Writer) -> Unit): Outgo
 
         suspend fun heartbeat() {
             writeWrap(delimiter)
+            logger.trace { "Heartbeat." }
         }
     }
 }
