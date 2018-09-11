@@ -1,16 +1,16 @@
 package jp.nephy.tweetstorm
 
-import com.google.gson.JsonObject
-import jp.nephy.jsonkt.JsonModel
-import jp.nephy.jsonkt.jsonObject
-import jp.nephy.jsonkt.toJsonString
-import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.session.AuthenticatedStream
-import jp.nephy.tweetstorm.task.*
+import jp.nephy.tweetstorm.task.ProduceTask
+import jp.nephy.tweetstorm.task.RegularTask
+import jp.nephy.tweetstorm.task.producer.*
+import jp.nephy.tweetstorm.task.regular.SyncList
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.selects.select
 import kotlinx.coroutines.experimental.sync.Mutex
+import kotlinx.coroutines.experimental.sync.withLock
 import java.io.Closeable
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
@@ -26,71 +26,68 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     private val masterJob = Job()
 
     val account = initialStream.account
-    val twitter = PenicillinClient {
-        account {
-            application(account.ck, account.cs)
-            token(account.at, account.ats)
-        }
-    }
 
     private val streams = CopyOnWriteArraySet<AuthenticatedStream>().also {
         it += initialStream
     }
-
-    private val tasks = mutableListOf<RunnableTask>().also {
-        if (account.listId != null) {
-            it += ListTimeline(this)
-
-            try {
-                twitter.list.member(listId = account.listId, userId = account.user.id).complete()
-            } catch (e: PenicillinException) {
-                if (e.error == TwitterErrorMessage.UserNotInThisList) {
-                    it += UserTimeline(this)
-                    it += MentionTimeline(this)
-                }
-            }
-        } else {
-            it += HomeTimeline(this)
-        }
-
-        if (account.enableDirectMessage) {
-            it += DirectMessage(this)
-        }
-        if (account.filterStreamTracks.isNotEmpty() || account.filterStreamFollows.isNotEmpty()) {
-            it += FilterStream(this)
-        }
-        if (account.enableSampleStream) {
-            it += SampleStream(this)
-        }
-        if (account.enableActivity && account.twitterForiPhoneAccessToken != null && account.twitterForiPhoneAccessTokenSecret != null) {
-            it += Activity(this)
-        }
-        it += Heartbeat(this)
-    }
-    private val targetedTasks = mutableListOf<TargetedFetchTask>().also {
-        if (account.enableFriends) {
-            it += Friends(this)
-        }
-    }
-    private val regularTasks = mutableListOf<RegularTask>().also {
-        if (account.syncListFollowing && account.listId != null) {
-            it += SyncList(this)
-        }
-    }
+    private val streamsMutex = Mutex()
 
     fun anyClients(): Boolean {
         return streams.isNotEmpty()
     }
 
-    fun register(stream: AuthenticatedStream) {
-        if (streams.add(stream)) {
-            startTargetedTasks(stream)
+    private val tasks = object {
+        val produce = mutableListOf<ProduceTask<*>>().also {
+            if (account.listId != null) {
+                it += ListTimeline(account)
+
+                try {
+                    account.twitter.list.member(listId = account.listId, userId = account.user.id).complete()
+                } catch (e: PenicillinException) {
+                    if (e.error == TwitterErrorMessage.UserNotInThisList) {
+                        it += UserTimeline(account)
+                        it += MentionTimeline(account)
+                    }
+                }
+            } else {
+                it += HomeTimeline(account)
+            }
+
+            if (account.enableDirectMessage) {
+                it += DirectMessage(account)
+            }
+
+            if (account.filterStreamTracks.isNotEmpty() || account.filterStreamFollows.isNotEmpty()) {
+                it += FilterStream(account)
+            }
+
+            if (account.enableSampleStream) {
+                it += SampleStream(account)
+            }
+
+            if (account.enableActivity && account.twitterForiPhoneAccessToken != null && account.twitterForiPhoneAccessTokenSecret != null) {
+                it += Activity(account)
+            }
+
+            it += Heartbeat(account)
+        }
+
+        val regular = mutableListOf<RegularTask>().also {
+            if (account.syncListFollowing && account.listId != null) {
+                it += SyncList(account)
+            }
+        }
+    }
+
+    suspend fun register(stream: AuthenticatedStream) {
+        if (streamsMutex.withLock { streams.add(stream) }) {
+            stream.startTargetedTasks()
             logger.debug { "A Stream has been registered to @${account.user.screenName}." }
         }
     }
 
-    private fun unregister(stream: AuthenticatedStream) {
-        if (streams.remove(stream)) {
+    private suspend fun unregister(stream: AuthenticatedStream) {
+        if (streamsMutex.withLock { streams.remove(stream) }) {
             stream.close()
             logger.debug { "A Stream has been unregistered from @${account.user.screenName}." }
         }
@@ -104,109 +101,35 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         unregister(stream)
     }
 
-    suspend fun emit(target: AuthenticatedStream, content: String) {
-        try {
-            target.handler.emit(content)
-            logger.trace { "Payload = $content" }
-        } catch (e: IOException) {
-            unregister(target)
-        } catch (e: Exception) {
-            logger.error(e) { "A Stream failed sending payload. ($content)" }
-        }
-    }
-    suspend fun emit(target: AuthenticatedStream, vararg pairs: Pair<String, Any?>) {
-        emit(target, jsonObject(*pairs))
-    }
-    suspend fun emit(target: AuthenticatedStream, json: JsonObject) {
-        emit(target, json.toJsonString())
-    }
-    suspend fun emit(target: AuthenticatedStream, payload: JsonModel) {
-        emit(target, payload.json)
-    }
-    suspend fun emit(content: String) {
-        for (stream in streams) {
-            launch(parent = stream.job) {
-                emit(stream, content)
-            }
-        }
-    }
-    suspend fun emit(vararg pairs: Pair<String, Any?>) {
-        emit(jsonObject(*pairs))
-    }
-    suspend fun emit(json: JsonObject) {
-        emit(json.toJsonString())
-    }
-    suspend fun emit(payload: JsonModel) {
-        emit(payload.json)
-    }
+    suspend fun start(target: AuthenticatedStream) {
+        target.startTargetedTasks()
 
-    suspend fun heartbeat() {
-        for (stream in streams) {
-            launch(parent = stream.job) {
-                try {
-                    stream.handler.heartbeat()
-                } catch (e: IOException) {
-                    unregister(stream)
-                } catch (e: Exception) {
-                    logger.error(e) { "A Stream failed sending heartbeat." }
-                }
-            }
-        }
-    }
+        launch(parent = masterJob) {
+            select {
+                for (task in tasks.produce) {
+                    task.channel.onReceiveOrNull { data ->
+                        if (data == null) {
+                            task.logger.trace { "ProduceTask: ${task.javaClass.simpleName} channel closed." }
+                            return@onReceiveOrNull
+                        }
 
-    fun start(target: AuthenticatedStream) {
-        startTasks()
-        startTargetedTasks(target)
-        startRegularTasks()
-    }
-
-    private fun startTasks() {
-        for (task in tasks) {
-            launch(parent = masterJob) {
-                task.logger.debug { "RunnableTask: ${task.javaClass.simpleName} started." }
-
-                while (isActive) {
-                    try {
-                        task.run()
-                    } catch (e: CancellationException) {
-                        task.logger.trace(e) { "RunnableTask: ${task.javaClass.simpleName} was cancelled." }
-                        break
-                    } catch (e: Exception) {
-                        task.logger.error(e) { "An error occurred while task." }
+                        for (stream in streams) {
+                            try {
+                                data.emit(stream.handler)
+                                task.logger.trace { "ProduceTask: ${task.javaClass.simpleName} emitted." }
+                            } catch (e: IOException) {
+                                task.logger.trace { "ProduceTask: ${task.javaClass.simpleName} finished." }
+                                unregister(stream)
+                            }
+                        }
                     }
-                }
 
-                withContext(NonCancellable) {
-                    task.logger.debug { "RunnableTask: ${task.javaClass.simpleName} will terminate." }
-                    task.close()
+                    task.logger.debug { "ProduceTask: ${task.javaClass.simpleName} has been registered." }
                 }
             }
         }
-    }
 
-    private fun startTargetedTasks(target: AuthenticatedStream) {
-        for (task in targetedTasks) {
-            launch(parent = masterJob) {
-                task.logger.debug { "TargetedTask: ${task.javaClass.simpleName} started." }
-
-                try {
-                    task.run(target)
-                    task.logger.debug { "TargetedTask: ${task.javaClass.simpleName} finished." }
-                } catch (e: CancellationException) {
-                    task.logger.trace(e) { "TargetedTask: ${task.javaClass.simpleName} was cancelled." }
-                } catch (e: Exception) {
-                    task.logger.error(e) { "An error occurred while targeted task." }
-                } finally {
-                    withContext(NonCancellable) {
-                        task.close()
-                    }
-                }
-            }
-        }
-    }
-
-    private fun startRegularTasks() {
-        for (task in regularTasks) {
+        for (task in tasks.regular) {
             launch(parent = masterJob) {
                 while (isActive) {
                     task.logger.debug { "RegularTask: ${task.javaClass.simpleName} started." }
@@ -216,17 +139,37 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                         task.logger.debug { "RegularTask: ${task.javaClass.simpleName} finished." }
                         delay(task.interval, task.unit)
                     } catch (e: CancellationException) {
-                        task.logger.trace(e) { "RegularTask: ${task.javaClass.simpleName} was cancelled." }
+                        task.logger.debug { "RegularTask: ${task.javaClass.simpleName} will terminate." }
                         break
                     } catch (e: Exception) {
                         task.logger.error(e) { "An error occurred while regular task." }
                         delay(task.interval, task.unit)
                     }
                 }
+            }
+        }
+    }
 
-                withContext(NonCancellable) {
-                    task.logger.debug { "RegularTask: ${task.javaClass.simpleName} will terminate." }
-                    task.close()
+    private suspend fun AuthenticatedStream.startTargetedTasks() {
+        launch(parent = masterJob) {
+            select {
+                if (account.enableFriends) {
+                    val task = Friends(this@startTargetedTasks)
+                    task.channel.onReceiveOrNull { data ->
+                        if (data == null) {
+                            task.logger.trace { "TargetedProduceTask: ${task.javaClass.simpleName} channel closed." }
+                            return@onReceiveOrNull
+                        }
+
+                        try {
+                            data.emit(handler)
+                        } catch (e: IOException) {
+                            task.logger.trace { "TargetedProduceTask: ${task.javaClass.simpleName} finished." }
+                            unregister(this@startTargetedTasks)
+                        }
+                    }
+
+                    task.logger.debug { "TargetedProduceTask: ${task.javaClass.simpleName} started." }
                 }
             }
         }
@@ -234,12 +177,8 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
 
     override fun close() {
         runBlocking(CommonPool) {
-            masterJob.children.filter { it.isActive }.forEach {
-                it.cancelAndJoin()
-            }
+            masterJob.cancelChildren()
             masterJob.cancelAndJoin()
         }
-
-        twitter.close()
     }
 }

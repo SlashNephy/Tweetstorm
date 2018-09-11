@@ -35,15 +35,17 @@ class Config(override val json: JsonObject): JsonModel {
     val accounts by json.byModelList<Account>()
 
     class Account(override val json: JsonObject): JsonModel {
-        val user by lazy {
+        val twitter by lazy {
             PenicillinClient {
                 account {
                     application(ck, cs)
                     token(at, ats)
                 }
-            }.use {
-                it.account.verifyCredentials().complete().result
+                skipEmulationChecking()
             }
+        }
+        val user by lazy {
+            twitter.account.verifyCredentials().complete().result
         }
 
         val ck by json.byString
@@ -62,9 +64,6 @@ class Config(override val json: JsonObject): JsonModel {
 
         val filterStreamTracks by json.byStringList("filter_stream_tracks")
         val filterStreamFollows by json.byLongList("filter_stream_follows")
-
-        val markVia by json.byBool("mark_via") { false }
-        val markVote by json.byBool("mark_vote") { false }
 
         val listInterval by json.byLong("list_timeline_refresh_sec") { 3 }
         val homeInterval by json.byLong("home_timeline_refresh_sec") { 90 }
