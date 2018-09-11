@@ -2,12 +2,13 @@ package jp.nephy.tweetstorm.session
 
 import io.ktor.request.ApplicationRequest
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.io.ByteWriteChannel
 import java.io.Closeable
 import java.io.Writer
 
-abstract class Stream<T>(writer: Writer, val request: ApplicationRequest): Closeable {
+abstract class Stream<T>(channel: ByteWriteChannel, val request: ApplicationRequest): Closeable {
     val job = Job()
-    val handler = StreamContent.Handler(writer, request)
+    val handler = StreamContent.Handler(channel, request)
 
     abstract suspend fun await(): T
 

@@ -12,7 +12,6 @@ import kotlinx.coroutines.experimental.selects.select
 import kotlinx.coroutines.experimental.sync.Mutex
 import kotlinx.coroutines.experimental.sync.withLock
 import java.io.Closeable
-import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.TimeUnit
 
@@ -104,27 +103,21 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     suspend fun start(target: AuthenticatedStream) {
         target.startTargetedTasks()
 
-        launch(parent = masterJob) {
-            select {
-                for (task in tasks.produce) {
-                    task.channel.onReceiveOrNull { data ->
-                        if (data == null) {
-                            task.logger.trace { "ProduceTask: ${task.javaClass.simpleName} channel closed." }
-                            return@onReceiveOrNull
-                        }
+        for (task in tasks.produce) {
+            launch(parent = masterJob) {
+                task.logger.debug { "ProduceTask: ${task.javaClass.simpleName} started." }
 
-                        for (stream in streams) {
-                            try {
-                                data.emit(stream.handler)
-                                task.logger.trace { "ProduceTask: ${task.javaClass.simpleName} emitted." }
-                            } catch (e: IOException) {
-                                task.logger.trace { "ProduceTask: ${task.javaClass.simpleName} finished." }
-                                unregister(stream)
-                            }
+                while (isActive) {
+                    val channel = task.channel(kotlin.coroutines.experimental.coroutineContext, masterJob)
+                    val data = channel.receive()
+                    for (stream in streams) {
+                        if (data.emit(stream.handler)) {
+                            task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) emitted successfully." }
+                        } else {
+                            task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) failed to deliver." }
+                            unregister(stream)
                         }
                     }
-
-                    task.logger.debug { "ProduceTask: ${task.javaClass.simpleName} has been registered." }
                 }
             }
         }
@@ -136,7 +129,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
 
                     try {
                         task.run()
-                        task.logger.debug { "RegularTask: ${task.javaClass.simpleName} finished." }
+                        task.logger.trace { "RegularTask: ${task.javaClass.simpleName} finished successfully." }
                         delay(task.interval, task.unit)
                     } catch (e: CancellationException) {
                         task.logger.debug { "RegularTask: ${task.javaClass.simpleName} will terminate." }
@@ -155,17 +148,14 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
             select {
                 if (account.enableFriends) {
                     val task = Friends(this@startTargetedTasks)
-                    task.channel.onReceiveOrNull { data ->
-                        if (data == null) {
-                            task.logger.trace { "TargetedProduceTask: ${task.javaClass.simpleName} channel closed." }
-                            return@onReceiveOrNull
-                        }
-
-                        try {
-                            data.emit(handler)
-                        } catch (e: IOException) {
-                            task.logger.trace { "TargetedProduceTask: ${task.javaClass.simpleName} finished." }
-                            unregister(this@startTargetedTasks)
+                    launch(parent = job) {
+                        task.channel(kotlin.coroutines.experimental.coroutineContext, masterJob).onReceive { data ->
+                            if (data.emit(handler)) {
+                                task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) emitted successfully." }
+                            } else {
+                                task.logger.debug { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) failed to deliver." }
+                                unregister(this@startTargetedTasks)
+                            }
                         }
                     }
 
