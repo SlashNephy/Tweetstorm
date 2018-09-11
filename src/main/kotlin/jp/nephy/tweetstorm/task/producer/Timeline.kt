@@ -11,14 +11,16 @@ import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonModelData
 import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.getAndUpdate
 import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.CoroutineContext
 
 private val timelineOptions = arrayOf("include_entities" to "true", "include_rts" to "true", "tweet_mode" to "extended")
 
@@ -38,20 +40,22 @@ class MentionTimeline(account: Config.Account): TimelineTask(account, account.me
     account.twitter.timeline.mention(count = 200, sinceId = it, options = *timelineOptions)
 })
 
-abstract class TimelineTask(account: Config.Account, sleepSec: Long, source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>): ProduceTask<JsonModelData>(account) {
-    private val lastId = atomic(0L)
-    override val channel = produce(capacity = Channel.UNLIMITED) {
+abstract class TimelineTask(account: Config.Account, private val sleepSec: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>): ProduceTask<JsonModelData>(account) {
+    override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
+        val lastId = atomic(0L)
         while (isActive) {
             try {
                 val timeline = source(if (lastId.value > 0) lastId.value else null).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
                 if (timeline.isNotEmpty()) {
-                    if (lastId.value > 0) {
-                        timeline.reversed().forEach {
-                            send(JsonModelData(it.apply { postProcess() }))
+                    lastId.getAndUpdate {
+                        if (it > 0) {
+                            timeline.reversed().forEach {
+                                send(JsonModelData(it.apply { postProcess() }))
+                            }
                         }
-                    }
 
-                    lastId.value = timeline.first().id
+                        timeline.first().id
+                    }
                 }
 
                 if (timeline.headers.rateLimit.hasLimit) {
@@ -63,6 +67,7 @@ abstract class TimelineTask(account: Config.Account, sleepSec: Long, source: (la
                         // streamLogger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt})" }
                         delay(10, TimeUnit.SECONDS)
                     }
+                    logger.trace { "Rate limit: ${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt}" }
                 }
 
                 delay(sleepSec, TimeUnit.SECONDS)

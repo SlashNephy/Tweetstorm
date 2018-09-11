@@ -6,13 +6,14 @@ import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonObjectData
 import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.CoroutineContext
 
 class FilterStream(account: Config.Account): ProduceTask<JsonObjectData>(account) {
-    override val channel = produce(capacity = Channel.UNLIMITED) {
+    override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
         val stream = account.twitter.stream.filter(track = account.filterStreamTracks, follow = account.filterStreamFollows).await().listen(object: FilterStreamListener {
             override suspend fun onRawJson(json: JsonObject) {
                 send(JsonObjectData(json))

@@ -7,6 +7,7 @@ import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.builder.newStatus
 import jp.nephy.tweetstorm.toBooleanEasy
 import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.io.ByteWriteChannel
 import java.io.IOException
 import java.io.Writer
 import java.util.*
@@ -15,7 +16,7 @@ import java.util.concurrent.TimeUnit
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.PreAuthenticatedStream")
 
-class PreAuthenticatedStream(writer: Writer, request: ApplicationRequest, val account: Config.Account): Stream<Boolean>(writer, request) {
+class PreAuthenticatedStream(channel: ByteWriteChannel, request: ApplicationRequest, val account: Config.Account): Stream<Boolean>(channel, request) {
     companion object {
         private val streams = CopyOnWriteArrayList<PreAuthenticatedStream>()
 

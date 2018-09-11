@@ -9,38 +9,42 @@ import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonModelData
 import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.getAndUpdate
 import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.CoroutineContext
 
 class DirectMessage(account: Config.Account): ProduceTask<JsonModelData>(account) {
-    private val lastId = atomic(0L)
-    override val channel = produce(capacity = Channel.UNLIMITED) {
+    override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
+        val lastId = atomic(0L)
         while (isActive) {
             try {
                 val messages = account.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
                 if (messages.result.events.isNotEmpty()) {
-                    if (lastId.value > 0) {
-                        messages.result.events.asSequence().filter { it.type == "message_create" }.filter { lastId.value < it.id.toLong() }.toList().reversed().forEach {
-                            send(JsonModelData(newDirectMessage {
-                                recipient {
-                                    json["id"] = it.messageCreate.target.recipientId.toLong()
-                                }
-                                sender {
-                                    json["id"] = it.messageCreate.senderId.toLong()
-                                }
-                                text { it.messageCreate.messageData.text }
-                                json["entities"] = it.messageCreate.messageData.entities.json
-                            }))
+                    lastId.getAndUpdate {
+                        if (it > 0) {
+                            messages.result.events.asSequence().filter { it.type == "message_create" }.filter { lastId.value < it.id.toLong() }.toList().reversed().forEach {
+                                send(JsonModelData(newDirectMessage {
+                                    recipient {
+                                        json["id"] = it.messageCreate.target.recipientId.toLong()
+                                    }
+                                    sender {
+                                        json["id"] = it.messageCreate.senderId.toLong()
+                                    }
+                                    text { it.messageCreate.messageData.text }
+                                    json["entities"] = it.messageCreate.messageData.entities.json
+                                }))
+                            }
                         }
-                    }
 
-                    lastId.value = messages.result.events.first().id.toLong()
+                        messages.result.events.first().id.toLong()
+                    }
                 }
 
                 if (messages.headers.rateLimit.hasLimit) {

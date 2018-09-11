@@ -4,62 +4,66 @@ import com.google.gson.JsonObject
 import io.ktor.http.*
 import io.ktor.http.content.OutgoingContent
 import io.ktor.request.ApplicationRequest
-import io.ktor.util.cio.writer
 import jp.nephy.jsonkt.JsonModel
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.jsonkt.toJsonString
 import jp.nephy.tweetstorm.escapeHtml
 import jp.nephy.tweetstorm.escapeUnicode
+import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.io.ByteWriteChannel
+import kotlinx.coroutines.experimental.io.writeStringUtf8
+import kotlinx.coroutines.experimental.runBlocking
 import kotlinx.coroutines.experimental.sync.Mutex
 import kotlinx.coroutines.experimental.sync.withLock
+import kotlinx.coroutines.experimental.withTimeout
 import java.io.IOException
-import java.io.Writer
+import java.util.concurrent.TimeUnit
 
 private const val delimiter = "\r\n"
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.StreamContent")
 
-class StreamContent(private val writer: suspend (writer: Writer) -> Unit): OutgoingContent.WriteChannelContent() {
+class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> Unit): OutgoingContent.WriteChannelContent() {
     override val status = HttpStatusCode.OK
     override val headers = headersOf(HttpHeaders.Connection, "keep-alive")
     override val contentType = ContentType.Application.Json.withCharset(Charsets.UTF_8)
 
     override suspend fun writeTo(channel: ByteWriteChannel) {
-        channel.writer(Charsets.UTF_8).use {
-            try {
-                writer(it)
-            } catch (e: IOException) {
-                return
-            }
+        runBlocking {
+            writer(channel)
         }
     }
 
-    class Handler(private val writer: Writer, request: ApplicationRequest) {
+    class Handler(private val channel: ByteWriteChannel, request: ApplicationRequest) {
         private val delimitedBy = DelimitedBy.byName(request.queryParameters["delimited"].orEmpty())
         private val lock = Mutex()
 
-        var isAlive = true
-            private set
+        val isAlive: Boolean
+            get() = !channel.isClosedForWrite
 
-        private suspend fun writeWrap(content: String) {
-            if (!isAlive){
-                return
+        private suspend fun writeWrap(content: String): Boolean {
+            if (channel.isClosedForWrite){
+                return false
             }
 
-            lock.withLock {
-                try {
-                    writer.write(content)
-                    writer.flush()
-                } catch (e: IOException) {
-                    isAlive = false
-                    throw e
+            return try {
+                lock.withLock {
+                    withTimeout(1, TimeUnit.SECONDS) {
+                        channel.writeStringUtf8(content)
+                        channel.flush()
+                    }
                 }
+                true
+            } catch (e: CancellationException) {
+                false
+            } catch (e: IOException) {
+                false
             }
         }
 
-        suspend fun emit(content: String) {
+        private suspend fun emit(content: String): Boolean {
+            logger.trace { "Payload = $content" }
             val text = "${content.trim().escapeHtml().escapeUnicode()}$delimiter"
-            when (delimitedBy) {
+            return when (delimitedBy) {
                 DelimitedBy.Length -> {
                     writeWrap("${text.length}$delimiter$text")
                 }
@@ -67,24 +71,22 @@ class StreamContent(private val writer: suspend (writer: Writer) -> Unit): Outgo
                     writeWrap(text)
                 }
             }
-            logger.trace { "Payload = $content" }
         }
 
-        suspend fun emit(vararg pairs: Pair<String, Any?>) {
-            emit(jsonObject(*pairs))
+        suspend fun emit(vararg pairs: Pair<String, Any?>): Boolean {
+            return emit(jsonObject(*pairs))
         }
 
-        suspend fun emit(json: JsonObject) {
-            emit(json.toJsonString())
+        suspend fun emit(json: JsonObject): Boolean {
+            return emit(json.toJsonString())
         }
 
-        suspend fun emit(payload: JsonModel) {
-            emit(payload.json)
+        suspend fun emit(payload: JsonModel): Boolean {
+            return emit(payload.json)
         }
 
-        suspend fun heartbeat() {
-            writeWrap(delimiter)
-            logger.trace { "Heartbeat." }
+        suspend fun heartbeat(): Boolean {
+            return writeWrap(delimiter)
         }
     }
 }

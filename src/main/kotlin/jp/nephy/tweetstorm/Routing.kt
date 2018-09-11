@@ -18,8 +18,8 @@ import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.session.DemoStream
 import jp.nephy.tweetstorm.session.PreAuthenticatedStream
 import jp.nephy.tweetstorm.session.StreamContent
+import kotlinx.coroutines.experimental.io.ByteWriteChannel
 import kotlinx.html.*
-import java.io.Writer
 
 private val logger = logger("Tweetstorm.Routing")
 
@@ -216,6 +216,6 @@ suspend fun PipelineContext<Unit, ApplicationCall>.notFound() {
     }
 }
 
-private suspend fun ApplicationCall.respondStream(writer: suspend (writer: Writer) -> Unit) {
+private suspend fun ApplicationCall.respondStream(writer: suspend (channel: ByteWriteChannel) -> Unit) {
     respond(StreamContent(writer))
 }

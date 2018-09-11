@@ -15,14 +15,16 @@ import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonData
 import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.getAndUpdate
 import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.time.delay
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.experimental.CoroutineContext
 
 class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
     private val twitter = PenicillinClient {
@@ -34,47 +36,49 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
         skipEmulationChecking()
     }
 
-    private val lastId = atomic(0L)
-    override val channel = produce(capacity = Channel.UNLIMITED) {
+    override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
+        val lastId = atomic(0L)
         while (isActive) {
             try {
                 val activities = twitter.activity.aboutMe().awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
                 if (activities.isNotEmpty()) {
-                    if (lastId.value > 0) {
-                        activities.filter { lastId.value < it.createdAt.date.time }.reversed().forEach { event ->
-                            val type = event.action.toEventType() ?: return@forEach
-                            when (type) {
-                                is StatusEventType, is ListEventType -> {
-                                    val (source, targetObject) = event.sources.first().json to event.targets.first().json
-                                    val target = targetObject.remove("user").jsonObject
-                                    send(
-                                            JsonData(
-                                                "event" to type.key,
-                                                "source" to source,
-                                                "target" to target,
-                                                "target_object" to targetObject,
-                                                "created_at" to event.createdAt.value
-                                            )
-                                    )
-                                }
-                                is UserEventType -> {
-                                    send(
-                                            JsonData(
-                                                "event" to type.key,
-                                                "source" to event.sources.first().json,
-                                                "target" to event.targets.first().json,
-                                                "created_at" to event.createdAt.value
+                    lastId.getAndUpdate {
+                        if (it > 0) {
+                            activities.filter { json -> it < json.createdAt.date.time }.reversed().forEach { event ->
+                                val type = event.action.toEventType() ?: return@forEach
+                                when (type) {
+                                    is StatusEventType, is ListEventType -> {
+                                        val (source, targetObject) = event.sources.first().json to event.targets.first().json
+                                        val target = targetObject.remove("user").jsonObject
+                                        send(
+                                                JsonData(
+                                                        "event" to type.key,
+                                                        "source" to source,
+                                                        "target" to target,
+                                                        "target_object" to targetObject,
+                                                        "created_at" to event.createdAt.value
+                                                )
                                         )
-                                    )
-                                }
-                                else -> {
-                                    logger.warn { "Unknown EventType received: ${type.javaClass.canonicalName}" }
+                                    }
+                                    is UserEventType -> {
+                                        send(
+                                                JsonData(
+                                                        "event" to type.key,
+                                                        "source" to event.sources.first().json,
+                                                        "target" to event.targets.first().json,
+                                                        "created_at" to event.createdAt.value
+                                                )
+                                        )
+                                    }
+                                    else -> {
+                                        logger.warn { "Unknown EventType received: ${type.javaClass.canonicalName}" }
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    lastId.value = activities.first().createdAt.date.time
+                        activities.first().createdAt.date.time
+                    }
                 }
 
                 if (activities.headers.rateLimit.hasLimit) {
