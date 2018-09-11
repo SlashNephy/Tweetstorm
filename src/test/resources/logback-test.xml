@@ -10,7 +10,7 @@
     </appender>
     
     <logger name="Tweetstorm" level="ALL" />
-    <logger name="Penicillin" level="ALL" />
+    <logger name="Penicillin" level="DEBUG" />
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
