@@ -1,7 +1,6 @@
 package jp.nephy.tweetstorm
 
 import jp.nephy.penicillin.core.PenicillinException
-import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.RegularTask
@@ -40,16 +39,32 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
             if (account.listId != null) {
                 it += ListTimeline(account)
 
-                try {
+                val listContainsSelf = try {
                     account.twitter.list.member(listId = account.listId, userId = account.user.id).complete()
+                    true
                 } catch (e: PenicillinException) {
-                    if (e.error == TwitterErrorMessage.UserNotInThisList) {
-                        it += UserTimeline(account)
-                        it += MentionTimeline(account)
+                    false
+                }
+
+                if (listContainsSelf && account.syncListFollowing) {
+                    it += UserTimeline(account) { status ->
+                        status.inReplyToUserId !in account.friends
                     }
+                    it += MentionTimeline(account) { status ->
+                        status.user.id !in account.friends
+                    }
+                } else {
+                    it += UserTimeline(account)
+                    it += MentionTimeline(account)
                 }
             } else {
                 it += HomeTimeline(account)
+                it += UserTimeline(account) { status ->
+                    status.inReplyToUserId !in account.friends
+                }
+                it += MentionTimeline(account) { status ->
+                    status.user.id !in account.friends
+                }
             }
 
             if (account.enableDirectMessage) {

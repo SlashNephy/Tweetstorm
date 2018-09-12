@@ -24,33 +24,33 @@ import kotlin.coroutines.experimental.CoroutineContext
 
 private val timelineOptions = arrayOf("include_entities" to "true", "include_rts" to "true", "tweet_mode" to "extended")
 
-class ListTimeline(account: Config.Account): TimelineTask(account, account.listInterval, {
+class ListTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.listInterval, {
     account.twitter.list.timeline(listId = account.listId, count = 200, sinceId = it, options = *timelineOptions)
-})
+}, filter)
 
-class HomeTimeline(account: Config.Account): TimelineTask(account, account.homeInterval, {
+class HomeTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.homeInterval, {
     account.twitter.timeline.home(count = 200, sinceId = it, options = *timelineOptions)
-})
+}, filter)
 
-class UserTimeline(account: Config.Account): TimelineTask(account, account.userInterval, {
+class UserTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.userInterval, {
     account.twitter.timeline.user(count = 200, sinceId = it, options = *timelineOptions)
-})
+}, filter)
 
-class MentionTimeline(account: Config.Account): TimelineTask(account, account.mentionInterval, {
+class MentionTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.mentionInterval, {
     account.twitter.timeline.mention(count = 200, sinceId = it, options = *timelineOptions)
-})
+}, filter)
 
-abstract class TimelineTask(account: Config.Account, private val sleepSec: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>): ProduceTask<JsonModelData>(account) {
+abstract class TimelineTask(account: Config.Account, private val sleepSec: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonModelData>(account) {
     override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
         val lastId = atomic(0L)
         while (isActive) {
             try {
                 val timeline = source(if (lastId.value > 0) lastId.value else null).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
                 if (timeline.isNotEmpty()) {
-                    lastId.getAndUpdate {
-                        if (it > 0) {
-                            timeline.reversed().forEach {
-                                send(JsonModelData(it.apply { postProcess() }))
+                    lastId.getAndUpdate { id ->
+                        if (id > 0) {
+                            timeline.reversed().filter(filter).forEach {
+                                send(JsonModelData(it.postProcess()))
                             }
                         }
 
@@ -83,9 +83,9 @@ abstract class TimelineTask(account: Config.Account, private val sleepSec: Long,
             }
         }
     }
+}
 
-    private fun Status.postProcess() {
-        // For compatibility
-        json["text"] = json["full_text"].string
-    }
+private fun Status.postProcess() = apply {
+    // For compatibility
+    json["text"] = json["full_text"].string
 }
