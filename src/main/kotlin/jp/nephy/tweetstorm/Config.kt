@@ -7,7 +7,7 @@ import jp.nephy.penicillin.PenicillinClient
 import java.nio.file.Path
 import java.nio.file.Paths
 
-class Config(override val json: JsonObject): JsonModel {
+data class Config(override val json: JsonObject): JsonModel {
     companion object {
         private val defaultConfigPath = Paths.get("config.json")
 
@@ -34,7 +34,7 @@ class Config(override val json: JsonObject): JsonModel {
 
     val accounts by json.byModelList<Account>()
 
-    class Account(override val json: JsonObject): JsonModel {
+    data class Account(override val json: JsonObject): JsonModel {
         val twitter by lazy {
             PenicillinClient {
                 account {
