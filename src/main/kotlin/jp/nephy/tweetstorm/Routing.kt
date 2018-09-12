@@ -72,10 +72,10 @@ fun Route.getUser() {
         val strict = call.request.headers.parseAuthorizationHeaderStrict(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
         val simple = call.request.headers.parseAuthorizationHeaderSimple()
         val account = strict ?: simple
-        var authOK = strict != null || (config.skipAuth && account != null)
+        var authOK = strict != null || (config.app.skipAuth && account != null)
 
         call.respondStream { writer ->
-            if (account != null && !config.skipAuth && !authOK) {
+            if (account != null && !config.app.skipAuth && !authOK) {
                 PreAuthenticatedStream(writer, call.request, account).use { stream ->
                     if (stream.await()) {
                         authOK = true

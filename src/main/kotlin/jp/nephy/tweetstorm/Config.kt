@@ -21,20 +21,22 @@ data class Config(override val json: JsonObject): JsonModel {
         }
     }
 
-    val host by json.byString { "127.0.0.1" }
-    val port by json.byInt { 8080 }
+    val wui by lazy { WebUI(json) }
+    data class WebUI(override val json: JsonObject): JsonModel {
+        val host by json.byString { "127.0.0.1" }
+        val port by json.byInt { 8080 }
+        val maxConnections by json.byNullableInt("max_connections")
+    }
 
-    val skipAuth by json.byBool("skip_auth") { false }
+    val app by lazy { App(json) }
+    data class App(override val json: JsonObject): JsonModel {
+        val skipAuth by json.byBool("skip_auth") { false }
+        val apiTimeout by json.byLong("api_timeout") { 3000 }
+    }
 
-    val maxConnections by json.byInt("max_connections") { 2 * accounts.size }
-
-    val apiTimeoutSec by json.byLong("api_timeout_sec") { 3 }
-
-    private val logLevelString by json.byString("log_level") { "info" }
-    val logLevel by lazy { Level.toLevel(logLevelString, Level.INFO)!! }
+    val logLevel by lazy { Level.toLevel(json.getOrNull("log_level")?.toStringOrNull(), Level.INFO)!! }
 
     val accounts by json.byModelList<Account>()
-
     data class Account(override val json: JsonObject): JsonModel {
         val twitter by lazy {
             PenicillinClient {
@@ -60,20 +62,27 @@ data class Config(override val json: JsonObject): JsonModel {
         val token by json.byNullableString
 
         val enableDirectMessage by json.byBool("enable_direct_message") { true }
-
         val enableActivity by json.byBool("enable_activity") { false }
-        val twitterForiPhoneAccessToken by json.byNullableString("t4i_at")
-        val twitterForiPhoneAccessTokenSecret by json.byNullableString("t4i_ats")
-
         val enableFriends by json.byBool("enable_friends") { true }
-
-        val filterStreamTracks by json.byStringList("filter_stream_tracks")
-        val filterStreamFollows by json.byLongList("filter_stream_follows")
-
         val enableSampleStream by json.byBool("enable_sample_stream") { false }
 
-        val syncListFollowing by json.byBool("sync_list_following") { false }
-        val syncListIncludeSelf by json.byBool("sync_list_include_self") { true }
+        val filterStream by lazy { FilterStream(json) }
+        data class FilterStream(override val json: JsonObject): JsonModel {
+            val tracks by json.byStringList("filter_stream_tracks")
+            val follows by json.byLongList("filter_stream_follows")
+        }
+
+        val syncList by lazy { SyncList(json) }
+        data class SyncList(override val json: JsonObject): JsonModel {
+            val enabled by json.byBool("sync_list_following") { false }
+            val includeSelf by json.byBool("sync_list_include_self") { true }
+        }
+
+        val t4i by lazy { T4iCredentials(json) }
+        data class T4iCredentials(override val json: JsonObject): JsonModel {
+            val at by json.byNullableString("t4i_at")
+            val ats by json.byNullableString("t4i_ats")
+        }
 
         val refresh by lazy { RefreshTime(json) }
         data class RefreshTime(override val json: JsonObject): JsonModel {

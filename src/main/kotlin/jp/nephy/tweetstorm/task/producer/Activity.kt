@@ -30,7 +30,7 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
     private val twitter = PenicillinClient {
         account {
             application(OfficialClient.OAuth1a.TwitterForiPhone)
-            token(account.twitterForiPhoneAccessToken!!, account.twitterForiPhoneAccessTokenSecret!!)
+            token(account.t4i.at!!, account.t4i.ats!!)
         }
         emulate(EmulationMode.TwitterForiPhone)
         skipEmulationChecking()
@@ -40,7 +40,7 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
         val lastId = atomic(0L)
         while (isActive) {
             try {
-                val activities = twitter.activity.aboutMe().awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
+                val activities = twitter.activity.aboutMe().awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS) ?: continue
                 if (activities.isNotEmpty()) {
                     val lastIdOrNull = if (lastId.value > 0) lastId.value else null
                     if (lastIdOrNull != null) {

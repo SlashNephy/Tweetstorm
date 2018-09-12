@@ -46,7 +46,7 @@ abstract class TimelineTask(account: Config.Account, private val time: Long, pri
         while (isActive) {
             try {
                 val lastIdOrNull = if (lastId.value > 0) lastId.value else null
-                val timeline = source(lastIdOrNull).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
+                val timeline = source(lastIdOrNull).awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS) ?: continue
                 if (timeline.isNotEmpty()) {
                     if (lastIdOrNull != null) {
                         timeline.reversed().filter(filter).forEach {

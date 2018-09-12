@@ -25,7 +25,7 @@ internal class RequestLogging private constructor(private val monitor: Applicati
     }
 
     private val onStart = { _: Application ->
-        logger.info("Application is responding at http://${config.host}:${config.port}")
+        logger.info("Application is responding at http://${config.wui.host}:${config.wui.port}")
     }
     private var onStop = { _: Application ->
         logger.info("Application stopped.")

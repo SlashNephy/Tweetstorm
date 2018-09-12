@@ -25,7 +25,7 @@ class DirectMessage(account: Config.Account): ProduceTask<JsonModelData>(account
         val lastId = atomic(0L)
         while (isActive) {
             try {
-                val messages = account.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
+                val messages = account.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS) ?: continue
                 if (messages.result.events.isNotEmpty()) {
                     val lastIdOrNull = if (lastId.value > 0) lastId.value else null
                     if (lastIdOrNull != null) {
