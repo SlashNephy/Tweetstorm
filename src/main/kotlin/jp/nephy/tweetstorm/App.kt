@@ -11,6 +11,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.response.respond
 import io.ktor.routing.Routing
 import io.ktor.server.netty.NettyApplicationEngine
+import kotlinx.coroutines.experimental.CommonPool
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.App")
 
@@ -49,4 +50,8 @@ fun NettyApplicationEngine.Configuration.config() {
     callGroupSize = 2 * (maxConnectionsOverride - 1)
 
     logger.debug { "parallelism = $parallelism, connectionGroupSize = workerGroupSize = $connectionGroupSize, callGroupSize = $callGroupSize" }
+}
+
+internal fun setCommonPoolParallelism(value: Int?) {
+    System.setProperty(CommonPool.DEFAULT_PARALLELISM_PROPERTY_NAME, value?.toString() ?: return)
 }
