@@ -26,20 +26,47 @@ Tweetstormは2018/8/23に完全に廃止されたUserStreamをできる限り再
           ~        userstream.twitter.com          ~  127.0.0.1:8080 (Default)
 ```
  
-Tweetstormは以下のJSONデータを提供します。  
+Tweetstormは次のJSONデータを提供します。  
 - ツイート  
-  - Homeタイムラインのレートリミットは15回/15分であるのに対し, Listタイムラインは900回/15分なので毎秒更新できます。
-  - リストを毎秒更新することで実質的なリアルタイムを実現しています。
-  - リストに自分が入っていない場合は, 別途にUserタイムライン, Mentionタイムラインを呼び出し, 配信します。
-- ダイレクトメッセージ  
-- アクティビティ  
-  - `favorite`, `unfavorite`, `follow`, ...
-  - 利用にはTwitter for iPhoneのアクセストークンが必要です。
-- フレンドID  
-  - UserStream接続開始直後に流れてきていた `{"friends": [11111, 22222, ...]}` です。
-  - `stringify_friend_ids=true`パラメータで従来どおり文字列の配列でIDを受け取れます。
+  - `list_id`でリストを指定したかどうかや, そのリストに自分のアカウントが含まれているかどうかで挙動が異なります。  
+  
+    |`list_id`を指定した?|そのリストに自分が含まれている?|取得されるタイムライン|
+    |:--:|:--:|--:|
+    |Yes|Yes|List|
+    |Yes|No|List, User, Mentions|
+    |No|-|Home, User, Mentions|
+    
+    なお, Tweetstormにはリストにフォローユーザを同期する機能があります。これはデフォルトでは無効ですが, `sync_list_following`で切り替えることで有効にできます。
+    
+  - タイムラインによってレートリミットが異なります。そのため取得間隔に違いがあります。  
+  
+    |タイムライン|API レートリミット|Tweetstormでのデフォルトの取得間隔|
+    |:--:|:--:|--:|
+    |Home|15回/15分|90秒|
+    |List|900回/15分|3秒|
+    |User|900回/15分|3秒|
+    |Mentions|75回/15分|45秒| 
 
-これら以外にも従来のUserStreamで配信されていたデータもありますが, API仕様変更によりTweetstormは提供できません。
+- ダイレクトメッセージ  
+  - デフォルトで有効ですが, `enable_direct_message`で切り替えできます。
+  - レートリミットは 15回/15分 で, デフォルトの取得間隔は 90秒 です。
+- アクティビティ  
+  - デフォルトでは無効です。有効にするには `enable_activity`で切り替え, `Twitter for iPhone`のアクセストークンを設定する必要があります。
+  - 自分が関係しているイベントかつポジティブなイベントだけ配信されます。
+    - 例えば, 自分のツイートに対するお気に入りイベントは得られますが, お気に入り解除イベントや, 他人による他人のツイートへのお気に入りイベントを得ることはできません。
+    - この制約のため, 従来のUserStreamであった, フォローユーザのアクティビティを取得する`include_friends_activity=true`はもう使えません。
+- フレンドID  
+  - デフォルトで有効ですが, `enable_friends`で切り替えできます。  
+  - 従来のUserStreamであった, 接続開始直後に流れてきていた `{"friends": [11111, 22222, ...]}` です。  
+  - 従来どおり `stringify_friend_ids=true`パラメータで文字列配列でIDを受け取れます。  
+- FilterStream  
+  - デフォルトでは無効です。有効にするには `filter_stream_tracks`でトラックするワードを, `filter_stream_follows`でトラックするユーザIDを設定する必要があります。  
+  - 指定したワードを含むツイートや, 指定したユーザからのツイート, およびそれらの削除通知が配信されます。  
+- SampleStream
+  - デフォルトでは無効です。有効にするには `enable_sample_stream`で切り替える必要があります。
+  - Twitterに投稿されるツイートの一部とそれらの削除通知が配信されます。
+
+これら以外にも従来のUserStreamで配信されていたデータもありますが, APIの仕様変更によりTweetstormはそれらを提供できません。
 
 ## Wiki
-セットアップ, 互換性などのセクションは [Wiki](https://github.com/SlashNephy/Tweetstorm/wiki) に移動しました。
+セットアップ, 互換性などのセクションは [Wiki](https://github.com/SlashNephy/Tweetstorm/wiki) に移動しました。  
