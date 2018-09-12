@@ -46,7 +46,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                     false
                 }
 
-                if (listContainsSelf && account.syncListFollowing) {
+                if (listContainsSelf && account.syncList.enabled) {
                     it += UserTimeline(account) { status ->
                         status.inReplyToUserId !in account.friends
                     }
@@ -71,7 +71,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                 it += DirectMessage(account)
             }
 
-            if (account.filterStreamTracks.isNotEmpty() || account.filterStreamFollows.isNotEmpty()) {
+            if (account.filterStream.tracks.isNotEmpty() || account.filterStream.follows.isNotEmpty()) {
                 it += FilterStream(account)
             }
 
@@ -79,7 +79,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                 it += SampleStream(account)
             }
 
-            if (account.enableActivity && account.twitterForiPhoneAccessToken != null && account.twitterForiPhoneAccessTokenSecret != null) {
+            if (account.enableActivity && account.t4i.at != null && account.t4i.ats != null) {
                 it += Activity(account)
             }
 
@@ -87,7 +87,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         }
 
         val regular = mutableListOf<RegularTask>().also {
-            if (account.syncListFollowing && account.listId != null) {
+            if (account.syncList.enabled && account.listId != null) {
                 it += SyncList(account)
             }
         }
