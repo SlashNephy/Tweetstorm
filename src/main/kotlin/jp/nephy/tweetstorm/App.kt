@@ -43,7 +43,7 @@ fun Application.module() {
 fun NettyApplicationEngine.Configuration.config() {
     responseWriteTimeoutSeconds = 60
 
-    val maxConnectionsOverride = config.maxConnections ?: 2 * config.accounts.size
+    val maxConnectionsOverride = maxOf(config.maxConnections, 2)
     connectionGroupSize = maxConnectionsOverride
     workerGroupSize = maxConnectionsOverride
     callGroupSize = 2 * (maxConnectionsOverride - 1)

@@ -26,7 +26,7 @@ data class Config(override val json: JsonObject): JsonModel {
 
     val skipAuth by json.byBool("skip_auth") { false }
 
-    val maxConnections by json.byNullableInt("max_connections")
+    val maxConnections by json.byInt("max_connections") { 2 * accounts.size }
 
     val apiTimeoutSec by json.byLong("api_timeout_sec") { 3 }
 
