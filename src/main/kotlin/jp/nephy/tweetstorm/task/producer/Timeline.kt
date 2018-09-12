@@ -11,7 +11,7 @@ import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonModelData
 import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.getAndUpdate
+import kotlinx.atomicfu.update
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.produce
@@ -45,15 +45,16 @@ abstract class TimelineTask(account: Config.Account, private val sleepSec: Long,
         val lastId = atomic(0L)
         while (isActive) {
             try {
-                val timeline = source(if (lastId.value > 0) lastId.value else null).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
+                val lastIdOrNull = if (lastId.value > 0) lastId.value else null
+                val timeline = source(lastIdOrNull).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
                 if (timeline.isNotEmpty()) {
-                    lastId.getAndUpdate { id ->
-                        if (id > 0) {
-                            timeline.reversed().filter(filter).forEach {
-                                send(JsonModelData(it.postProcess()))
-                            }
+                    if (lastIdOrNull != null) {
+                        timeline.reversed().filter(filter).forEach {
+                            send(JsonModelData(it.postProcess()))
                         }
+                    }
 
+                    lastId.update {
                         timeline.first().id
                     }
                 }
