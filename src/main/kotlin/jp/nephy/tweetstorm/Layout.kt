@@ -27,7 +27,6 @@ class NavLayout: Template<HTML> {
     }
 }
 
-
 class FooterLayout: Template<HTML> {
     val footerContent = Placeholder<HtmlBlockTag>()
     override fun HTML.apply() {
@@ -44,8 +43,16 @@ class FooterLayout: Template<HTML> {
                         }
                         p {
                             +"Tweetstorm brought to you by "
-                            a("https://twitter.com/SlashNephy") {
+                            a("https://github.com/SlashNephy") {
                                 +"@SlashNephy"
+                            }
+                            +", "
+                            a("https://github.com/motitaiyaki") {
+                                +"@motitaiyaki"
+                            }
+                            +" and "
+                            a("https://github.com/suzutan") {
+                                +"@suzutan"
                             }
                             +" with "
                             span("fas fa-heart")
@@ -63,7 +70,6 @@ class FooterLayout: Template<HTML> {
         }
     }
 }
-
 
 class MainLayout: Template<HTML> {
     val content = Placeholder<HtmlBlockTag>()

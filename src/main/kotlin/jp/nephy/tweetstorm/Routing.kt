@@ -54,7 +54,7 @@ fun Route.getTop() {
                         }
                         a("https://github.com/SlashNephy/Tweetstorm/wiki/Setup-[ja]", "_blank", "list-group-item list-group-item-action") {
                             span("fas fa-book")
-                            +" Setup [JA]"
+                            +" Setup [ja]"
                         }
                         a("https://twitter.com/SlashNephy", "_blank", "list-group-item list-group-item-action") {
                             span("fab fa-twitter")
