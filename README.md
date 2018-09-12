@@ -1,3 +1,11 @@
+[![Kotlin 1.2.61](https://img.shields.io/badge/Kotlin-1.2.61-blue.svg)](http://kotlinlang.org)
+[![Licence](https://img.shields.io/github/license/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/blob/master/LICENSE)
+[![GitHub release](https://img.shields.io/github/release/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/releases)
+[![Docker Build Status](https://shields.beevelop.com/docker/pulls/slashnephy/tweetstorm.svg)](https://hub.docker.com/r/slashnephy/tweetstorm)
+[![Github All Releases](https://img.shields.io/github/downloads/SlashNephy/TweetStorm/total.svg)](https://github.com/SlashNephy/Tweetstorm/releases)
+[![GitHub issues](https://img.shields.io/github/issues/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/pulls)
+
 English README is [here](https://github.com/SlashNephy/Tweetstorm/blob/master/README_EN.md).  
 
 # Tweetstorm: UserStream APIの簡単な代替実装  
@@ -35,6 +43,3 @@ Tweetstormは以下のJSONデータを提供します。
 
 ## Wiki
 セットアップ, 互換性などのセクションは [Wiki](https://github.com/SlashNephy/Tweetstorm/wiki) に移動しました。
-
-## ライセンス
-このプロジェクトは MITライセンスで提供されます。
