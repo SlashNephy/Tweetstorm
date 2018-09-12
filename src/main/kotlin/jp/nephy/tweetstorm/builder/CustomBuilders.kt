@@ -29,3 +29,7 @@ fun newUserEvent(type: UserEventType, builder: CustomUserEventBuilder.() -> Unit
 fun newDirectMessage(builder: CustomDirectMessageBuilder.() -> Unit): DirectMessage {
     return CustomDirectMessageBuilder().apply(builder).build()
 }
+
+fun newDelete(builder: CustomDeleteBuilder.() -> Unit): StreamDelete {
+    return CustomDeleteBuilder().apply(builder).build()
+}
