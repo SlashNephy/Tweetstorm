@@ -59,25 +59,30 @@ data class Config(override val json: JsonObject): JsonModel {
         val listId by json.byNullableLong("list_id")
         val token by json.byNullableString
 
-        val syncListFollowing by json.byBool("sync_list_following") { false }
-        val syncListIncludeSelf by json.byBool("sync_list_include_self") { true }
-
         val enableDirectMessage by json.byBool("enable_direct_message") { true }
-        val enableFriends by json.byBool("enable_friends") { true }
-        val enableSampleStream by json.byBool("enable_sample_stream") { false }
-
-        val filterStreamTracks by json.byStringList("filter_stream_tracks")
-        val filterStreamFollows by json.byLongList("filter_stream_follows")
-
-        val listInterval by json.byLong("list_timeline_refresh_sec") { 3 }
-        val homeInterval by json.byLong("home_timeline_refresh_sec") { 90 }
-        val userInterval by json.byLong("user_timeline_refresh_sec") { 3 }
-        val mentionInterval by json.byLong("mention_timeline_refresh_sec") { 45 }
-        val messageInterval by json.byLong("direct_message_refresh_sec") { 90 }
-        val activityInterval by json.byLong("activity_refresh_sec") { 10 }
 
         val enableActivity by json.byBool("enable_activity") { false }
         val twitterForiPhoneAccessToken by json.byNullableString("t4i_at")
         val twitterForiPhoneAccessTokenSecret by json.byNullableString("t4i_ats")
+
+        val enableFriends by json.byBool("enable_friends") { true }
+
+        val filterStreamTracks by json.byStringList("filter_stream_tracks")
+        val filterStreamFollows by json.byLongList("filter_stream_follows")
+
+        val enableSampleStream by json.byBool("enable_sample_stream") { false }
+
+        val syncListFollowing by json.byBool("sync_list_following") { false }
+        val syncListIncludeSelf by json.byBool("sync_list_include_self") { true }
+
+        val refresh by lazy { RefreshTime(json) }
+        data class RefreshTime(override val json: JsonObject): JsonModel {
+            val listTimeline by json.byLong("list_timeline_refresh") { 1500 }
+            val userTimeline by json.byLong("user_timeline_refresh") { 1500 }
+            val mentionTimeline by json.byLong("mention_timeline_refresh") { 30000 }
+            val homeTimeline by json.byLong("home_timeline_refresh") { 75000 }
+            val directMessage by json.byLong("direct_message_refresh") { 75000 }
+            val activity by json.byLong("activity_refresh") { 8000 }
+        }
     }
 }

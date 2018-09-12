@@ -24,23 +24,23 @@ import kotlin.coroutines.experimental.CoroutineContext
 
 private val timelineOptions = arrayOf("include_entities" to "true", "include_rts" to "true", "tweet_mode" to "extended")
 
-class ListTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.listInterval, {
+class ListTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.listTimeline, {
     account.twitter.list.timeline(listId = account.listId, count = 200, sinceId = it, options = *timelineOptions)
 }, filter)
 
-class HomeTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.homeInterval, {
+class HomeTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.homeTimeline, {
     account.twitter.timeline.home(count = 200, sinceId = it, options = *timelineOptions)
 }, filter)
 
-class UserTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.userInterval, {
+class UserTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.userTimeline, {
     account.twitter.timeline.user(count = 200, sinceId = it, options = *timelineOptions)
 }, filter)
 
-class MentionTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.mentionInterval, {
+class MentionTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.mentionTimeline, {
     account.twitter.timeline.mention(count = 200, sinceId = it, options = *timelineOptions)
 }, filter)
 
-abstract class TimelineTask(account: Config.Account, private val sleepSec: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonModelData>(account) {
+abstract class TimelineTask(account: Config.Account, private val time: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonModelData>(account) {
     override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
         val lastId = atomic(0L)
         while (isActive) {
@@ -64,14 +64,14 @@ abstract class TimelineTask(account: Config.Account, private val sleepSec: Long,
                     if (timeline.headers.rateLimit.remaining!! < 2) {
                         // streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.headers.rateLimit.resetAt})" }
                         delay(duration)
-                    } else if (duration.seconds > 3 && timeline.headers.rateLimit.remaining!! * sleepSec.toDouble() / duration.seconds < 1) {
+                    } else if (duration.seconds > 3 && timeline.headers.rateLimit.remaining!! * time.toDouble() / duration.seconds < 1) {
                         // streamLogger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt})" }
                         delay(10, TimeUnit.SECONDS)
                     }
                     logger.trace { "Rate limit: ${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt}" }
                 }
 
-                delay(sleepSec, TimeUnit.SECONDS)
+                delay(time)
             } catch (e: CancellationException) {
                 break
             } catch (e: PenicillinException) {
@@ -79,7 +79,7 @@ abstract class TimelineTask(account: Config.Account, private val sleepSec: Long,
                     delay(10, TimeUnit.SECONDS)
                 } else {
                     logger.error(e) { "An error occurred while getting timeline." }
-                    delay(sleepSec, TimeUnit.SECONDS)
+                    delay(time)
                 }
             }
         }
