@@ -9,7 +9,7 @@ import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonModelData
 import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.getAndUpdate
+import kotlinx.atomicfu.update
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.produce
@@ -27,22 +27,23 @@ class DirectMessage(account: Config.Account): ProduceTask<JsonModelData>(account
             try {
                 val messages = account.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(config.apiTimeoutSec, TimeUnit.SECONDS) ?: continue
                 if (messages.result.events.isNotEmpty()) {
-                    lastId.getAndUpdate {
-                        if (it > 0) {
-                            messages.result.events.asSequence().filter { it.type == "message_create" }.filter { lastId.value < it.id.toLong() }.toList().reversed().forEach {
-                                send(JsonModelData(newDirectMessage {
-                                    recipient {
-                                        json["id"] = it.messageCreate.target.recipientId.toLong()
-                                    }
-                                    sender {
-                                        json["id"] = it.messageCreate.senderId.toLong()
-                                    }
-                                    text { it.messageCreate.messageData.text }
-                                    json["entities"] = it.messageCreate.messageData.entities.json
-                                }))
-                            }
+                    val lastIdOrNull = if (lastId.value > 0) lastId.value else null
+                    if (lastIdOrNull != null) {
+                        messages.result.events.asSequence().filter { it.type == "message_create" && lastIdOrNull < it.id.toLong() }.toList().reversed().forEach {
+                            send(JsonModelData(newDirectMessage {
+                                recipient {
+                                    json["id"] = it.messageCreate.target.recipientId.toLong()
+                                }
+                                sender {
+                                    json["id"] = it.messageCreate.senderId.toLong()
+                                }
+                                text { it.messageCreate.messageData.text }
+                                json["entities"] = it.messageCreate.messageData.entities.json
+                            }))
                         }
+                    }
 
+                    lastId.update {
                         messages.result.events.first().id.toLong()
                     }
                 }
