@@ -1,16 +1,22 @@
 package jp.nephy.tweetstorm.session
 
+import io.ktor.features.origin
 import io.ktor.request.ApplicationRequest
-import jp.nephy.jsonkt.toJsonString
+import jp.nephy.jsonkt.jsonArray
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.builder.newStatus
 import jp.nephy.tweetstorm.toBooleanEasy
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.io.ByteWriteChannel
+import java.io.IOException
 import java.io.Writer
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
-class PreAuthenticatedStream(writer: Writer, override val request: ApplicationRequest, val account: Config.Account): StreamWriter(writer) {
+private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.PreAuthenticatedStream")
+
+class PreAuthenticatedStream(channel: ByteWriteChannel, request: ApplicationRequest, val account: Config.Account): Stream<Boolean>(channel, request) {
     companion object {
         private val streams = CopyOnWriteArrayList<PreAuthenticatedStream>()
 
@@ -31,48 +37,50 @@ class PreAuthenticatedStream(writer: Writer, override val request: ApplicationRe
 
         @Synchronized
         private fun register(stream: PreAuthenticatedStream) {
-            streams.add(stream)
+            streams += stream
         }
     }
 
     private val urlToken = UUID.randomUUID().toString().toLowerCase().replace("-", "")
 
-    private var isSuccessBack = false
-    val isSuccess: Boolean
-        get() = isSuccessBack
+    override suspend fun await(): Boolean {
+        logger.info { "Client: @${account.user.screenName} (${request.origin.remoteHost}) requested account-token authentication." }
 
-    override fun handle() {
         register(this)
 
-        val stringifyFriendIds = request.queryParameters["stringify_friend_ids"].orEmpty().toBooleanEasy()
-        if (stringifyFriendIds) {
-            send("{\"friends_str\":[]}")
-        } else {
-            send("{\"friends\":[]}")
-        }
-
-        TimeUnit.SECONDS.sleep(3)
-
-        heartbeat()
-
-        send(newStatus {
-            user {
-                name("Tweetstorm Authenticator")
-            }
-            text { "To start streaming, access https://userstream.twitter.com/auth/token/$urlToken" }
-            url("https://userstream.twitter.com/auth/token/$urlToken", 27, 101)
-        }.toJsonString())
-
-        repeat(300) {
-            if (!contain(this)) {
-                isSuccessBack = true
-                return
+        try {
+            val stringifyFriendIds = request.queryParameters["stringify_friend_ids"].orEmpty().toBooleanEasy()
+            if (stringifyFriendIds) {
+                handler.emit("friends_str" to jsonArray())
+            } else {
+                handler.emit("friends" to jsonArray())
             }
 
-            if (it % 10 == 0) {
-                heartbeat()
+            delay(3, TimeUnit.SECONDS)
+
+            handler.heartbeat()
+
+            handler.emit(newStatus {
+                user {
+                    name("Tweetstorm Authenticator")
+                }
+                text { "To start streaming, access https://userstream.twitter.com/auth/token/$urlToken" }
+                url("https://userstream.twitter.com/auth/token/$urlToken", 27, 101)
+            })
+
+            repeat(300) {
+                if (!contain(this)) {
+                    return true
+                }
+
+                if (it % 10 == 0) {
+                    handler.heartbeat()
+                }
+                delay(1, TimeUnit.SECONDS)
             }
-            TimeUnit.SECONDS.sleep(1)
+            return false
+        } catch (e: IOException) {
+            return false
         }
     }
 }

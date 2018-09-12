@@ -13,7 +13,7 @@ import mu.KotlinLogging
 
 fun logger(name: String): KLogger {
     return KotlinLogging.logger(name).also {
-        (it.underlyingLogger as ch.qos.logback.classic.Logger).level = Tweetstorm.config.logLevel
+        (it.underlyingLogger as ch.qos.logback.classic.Logger).level = config.logLevel
     }
 }
 
@@ -25,7 +25,7 @@ internal class RequestLogging private constructor(private val monitor: Applicati
     }
 
     private val onStart = { _: Application ->
-        logger.info("Application is responding at http://${Tweetstorm.config.host}:${Tweetstorm.config.port}")
+        logger.info("Application is responding at http://${config.host}:${config.port}")
     }
     private var onStop = { _: Application ->
         logger.info("Application stopped.")

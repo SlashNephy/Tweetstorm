@@ -1,22 +1,31 @@
 package jp.nephy.tweetstorm.session
 
+import io.ktor.features.origin
 import io.ktor.request.ApplicationRequest
-import jp.nephy.jsonkt.toJsonString
 import jp.nephy.tweetstorm.builder.newStatus
-import java.io.Writer
+import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.io.ByteWriteChannel
 import java.util.concurrent.TimeUnit
 
-class DemoStream(writer: Writer, override val request: ApplicationRequest): StreamWriter(writer) {
-    override fun handle() {
-        val status = newStatus {
-            text { "This is demo stream. Since Tweetstorm could not authenticate you, demo stream has started. Please check your config.json." }
-        }
+private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.DemoStream")
 
-        send(status.toJsonString())
+class DemoStream(channel: ByteWriteChannel, request: ApplicationRequest): Stream<Unit>(channel, request) {
+    override suspend fun await() {
+        logger.info { "Unknown client: ${request.origin.remoteHost} has connected to DemoStream." }
 
-        while (isAlive) {
-            heartbeat()
-            TimeUnit.SECONDS.sleep(10)
+        try {
+            handler.emit(newStatus {
+                text { "This is demo stream. Since Tweetstorm could not authenticate you, demo stream has started. Please check your config.json." }
+            })
+
+            while (handler.isAlive) {
+                if (!handler.heartbeat()) {
+                    break
+                }
+                delay(3, TimeUnit.SECONDS)
+            }
+        } finally {
+            logger.info { "Unknown client: ${request.origin.remoteHost} has disconnected from DemoStream." }
         }
     }
 }

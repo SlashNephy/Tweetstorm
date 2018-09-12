@@ -4,26 +4,24 @@ import io.ktor.application.ApplicationCall
 import io.ktor.application.call
 import io.ktor.features.origin
 import io.ktor.html.respondHtmlTemplate
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.pipeline.PipelineContext
 import io.ktor.request.httpMethod
 import io.ktor.request.path
 import io.ktor.request.receiveParameters
 import io.ktor.response.respond
-import io.ktor.response.respondWrite
 import io.ktor.routing.Route
 import io.ktor.routing.get
 import io.ktor.routing.post
 import io.ktor.routing.route
-import io.ktor.util.toMap
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.session.DemoStream
 import jp.nephy.tweetstorm.session.PreAuthenticatedStream
+import jp.nephy.tweetstorm.session.StreamContent
+import kotlinx.coroutines.experimental.io.ByteWriteChannel
 import kotlinx.html.*
-import java.io.IOException
 
-private val logger by lazy { logger("Tweetstorm.Routing") }
+private val logger = logger("Tweetstorm.Routing")
 
 fun Route.getTop() {
     get("/") { _ ->
@@ -74,35 +72,27 @@ fun Route.getUser() {
         val strict = call.request.headers.parseAuthorizationHeaderStrict(call.request.local.method, "https://userstream.twitter.com/1.1/user.json", call.request.queryParameters)
         val simple = call.request.headers.parseAuthorizationHeaderSimple()
         val account = strict ?: simple
-        var authOK = strict != null || (Tweetstorm.config.skipAuth && account != null)
+        var authOK = strict != null || (config.skipAuth && account != null)
 
-        try {
-            call.respondWrite(ContentType.Application.Json, HttpStatusCode.OK) {
-                if (account != null && !Tweetstorm.config.skipAuth && !authOK) {
-                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) requested account-token authentication." }
-
-                    val preStream = PreAuthenticatedStream(this, call.request, account)
-                    preStream.handle()
-
-                    if (preStream.isSuccess) {
+        call.respondStream { writer ->
+            if (account != null && !config.skipAuth && !authOK) {
+                PreAuthenticatedStream(writer, call.request, account).use { stream ->
+                    if (stream.await()) {
                         authOK = true
                         logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has passed account-token authentication." }
                     } else {
                         logger.warn { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has failed account-token authentication." }
                     }
                 }
-
-                if (account != null && authOK) {
-                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) connected to UserStream API with parameter ${call.request.queryParameters.toMap()}." }
-                    AuthenticatedStream(this, call.request, account).handle()
-                    logger.info { "Client: @${account.user.screenName} (${call.request.origin.remoteHost}) has disconnected from UserStream API." }
-                } else {
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has connected to DemoStream." }
-                    DemoStream(this, call.request).handle()
-                    logger.info { "Unknown client: ${call.request.origin.remoteHost} has disconnected from DemoStream." }
-                }
             }
-        } catch (e: IOException) {
+
+            if (account != null && authOK) {
+                AuthenticatedStream(writer, call.request, account)
+            } else {
+                DemoStream(writer, call.request)
+            }.use { stream ->
+                stream.await()
+            }
         }
     }
 }
@@ -224,4 +214,8 @@ suspend fun PipelineContext<Unit, ApplicationCall>.notFound() {
             }
         }
     }
+}
+
+private suspend fun ApplicationCall.respondStream(writer: suspend (channel: ByteWriteChannel) -> Unit) {
+    respond(StreamContent(writer))
 }
