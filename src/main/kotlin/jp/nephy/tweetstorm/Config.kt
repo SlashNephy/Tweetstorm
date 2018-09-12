@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level
 import com.google.gson.JsonObject
 import jp.nephy.jsonkt.*
 import jp.nephy.penicillin.PenicillinClient
+import jp.nephy.penicillin.core.allIds
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -46,6 +47,9 @@ data class Config(override val json: JsonObject): JsonModel {
         }
         val user by lazy {
             twitter.account.verifyCredentials().complete().result
+        }
+        val friends by lazy {
+            twitter.friend.listIds(count = 5000).complete().untilLast().allIds
         }
 
         val ck by json.byString
