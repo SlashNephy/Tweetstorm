@@ -43,10 +43,10 @@ fun Application.module() {
 fun NettyApplicationEngine.Configuration.config() {
     responseWriteTimeoutSeconds = 60
 
-    logger.debug { "Available processors = $parallelism." }
+    val maxConnectionsOverride = config.maxConnections ?: 2 * config.accounts.size
+    connectionGroupSize = maxConnectionsOverride
+    workerGroupSize = maxConnectionsOverride
+    callGroupSize = 2 * (maxConnectionsOverride - 1)
 
-    val maxConnectionsOverride = config.maxConnections ?: return
-    connectionGroupSize = maxConnectionsOverride / 2 + 1
-    workerGroupSize = maxConnectionsOverride / 2 + 1
-    callGroupSize = maxConnectionsOverride
+    logger.debug { "parallelism = $parallelism, connectionGroupSize = workerGroupSize = $connectionGroupSize, callGroupSize = $callGroupSize" }
 }
