@@ -1,6 +1,9 @@
 package jp.nephy.tweetstorm.builder
 
-import jp.nephy.jsonkt.*
+import jp.nephy.jsonkt.get
+import jp.nephy.jsonkt.jsonArray
+import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.Status
 import java.text.SimpleDateFormat
 import java.util.*
@@ -11,39 +14,38 @@ class CustomStatusBuilder: JsonBuilder<Status> {
             "id" to null,
             "id_str" to null,
             "text" to "",
-            "full_text" to "",
-            "display_text_range" to jsonArray(),
-            "truncated" to false,
-            "entities" to jsonObject(
-                    "hashtags" to jsonArray(),
-                    "symbols" to jsonArray(),
-                    "user_mentions" to jsonArray(),
-                    "urls" to jsonArray()
-            ),
             "source" to null,
+            "truncated" to false,
             "in_reply_to_status_id" to null,
             "in_reply_to_status_id_str" to null,
             "in_reply_to_user_id" to null,
             "in_reply_to_user_id_str" to null,
             "in_reply_to_screen_name" to null,
             "user" to null,
-            "is_quote_status" to false,
-            "retweet_count" to 0,
-            "favorite_count" to 0,
-            "favorited" to false,
-            "retweeted" to false,
-            "possibly_sensitive" to false,
-            "possibly_sensitive_appealable" to false,
-            "lang" to "ja",
             "geo" to null,
             "coordinates" to null,
             "place" to null,
-            "contributors" to null
+            "contributors" to null,
+            "is_quote_status" to false,
+            "quote_count" to 0,
+            "reply_count" to 0,
+            "retweet_count" to 0,
+            "favorite_count" to 0,
+            "entities" to jsonObject(
+                    "hashtags" to jsonArray(),
+                    "symbols" to jsonArray(),
+                    "user_mentions" to jsonArray(),
+                    "urls" to jsonArray()
+            ),
+            "favorited" to false,
+            "retweeted" to false,
+            "filter_level" to "low",
+            "lang" to "ja",
+            "timestamp_ms" to null
     )
 
     fun text(value: String) {
         json["text"] = value
-        json["full_text"] = value
     }
     fun text(operation: () -> Any?) {
         text(operation.invoke().toString())
@@ -104,13 +106,12 @@ class CustomStatusBuilder: JsonBuilder<Status> {
         json["id"] = id
         json["id_str"] = id.toString()
 
-        json["display_text_range"] = jsonArray(0, json["text"].string.length)
-
         json["source"] = "<a href=\"$sourceUrl\" rel=\"nofollow\">$sourceName</a>"
 
         json["user"] = user.build().json
 
         json["created_at"] = createdAt.toCreatedAt()
+        json["timestamp_ms"] = (createdAt ?: Date()).time.toString()
 
         return Status(json)
     }
