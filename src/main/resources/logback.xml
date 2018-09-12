@@ -21,7 +21,7 @@
         </filter>
     </appender>
 
-    <logger name="Application" level="WARN" />
+    <logger name="ktor.application" level="WARN" />
     <logger name="Tweetstorm" level="INFO" />
     <logger name="Penicillin" level="INFO" />
 
