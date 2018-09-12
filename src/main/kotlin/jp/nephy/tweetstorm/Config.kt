@@ -32,6 +32,7 @@ data class Config(override val json: JsonObject): JsonModel {
     data class App(override val json: JsonObject): JsonModel {
         val skipAuth by json.byBool("skip_auth") { false }
         val apiTimeout by json.byLong("api_timeout") { 3000 }
+        val commonPoolParallelism by json.byNullableInt("common_pool_parallelism")
     }
 
     val logLevel by lazy { Level.toLevel(json.getOrNull("log_level")?.toStringOrNull(), Level.INFO)!! }

@@ -12,5 +12,7 @@ fun main(args: Array<String>) {
     val cliArguments = parseCommandLine(args)
     config = Config.load(cliArguments.configPath)
 
+    setCommonPoolParallelism(config.app.commonPoolParallelism)
+
     embeddedServer(Netty, host = config.wui.host, port = config.wui.port, configure = NettyApplicationEngine.Configuration::config, module = Application::module).start(wait = true)
 }
