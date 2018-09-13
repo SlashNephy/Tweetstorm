@@ -51,10 +51,10 @@ class DirectMessage(account: Config.Account): ProduceTask<JsonModelData>(account
                 if (messages.headers.rateLimit.hasLimit) {
                     val duration = Duration.between(Instant.now(), messages.headers.rateLimit.resetAt!!.toInstant())
                     if (messages.headers.rateLimit.remaining!! < 2) {
-                        // streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${messages.headers.rateLimit.resetAt})" }
+                        logger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${messages.headers.rateLimit.resetAt})" }
                         delay(duration)
                     } else if (duration.seconds > 3 && messages.headers.rateLimit.remaining!! * account.refresh.directMessage.toDouble() / 1000 / duration.seconds < 1) {
-                        // streamLogger.warn { "Rate limit: API calls (/${messages.request.url}) seem to be frequent than expected so consider adjusting `direct_message_refresh_sec` value in config.json. Sleep 10 secs. (${messages.headers.rateLimit.remaining}/${messages.headers.rateLimit.limit}, Reset at ${messages.headers.rateLimit.resetAt})" }
+                        logger.warn { "Rate limit: API calls (/${messages.request.url}) seem to be frequent than expected so consider adjusting `direct_message_refresh` value in config.json. Sleep 10 secs. (${messages.headers.rateLimit.remaining}/${messages.headers.rateLimit.limit}, Reset at ${messages.headers.rateLimit.resetAt})" }
                         delay(10, TimeUnit.SECONDS)
                     }
                 }

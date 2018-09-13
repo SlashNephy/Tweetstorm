@@ -85,10 +85,10 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
                 if (activities.headers.rateLimit.hasLimit) {
                     val duration = Duration.between(Instant.now(), activities.headers.rateLimit.resetAt!!.toInstant())
                     if (activities.headers.rateLimit.remaining!! < 2) {
-                        //streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${activities.headers.rateLimit.resetAt})" }
+                        logger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${activities.headers.rateLimit.resetAt})" }
                         delay(duration)
                     } else if (duration.seconds > 3 && activities.headers.rateLimit.remaining!! * account.refresh.activity.toDouble() / duration.seconds / 1000 < 1) {
-                        //streamLogger.warn { "Rate limit: API calls (/${activities.request.url}) seem to be frequent than expected so consider adjusting `activity_refresh_sec` value in config.json. Sleep 10 secs. (${activities.headers.rateLimit.remaining}/${activities.headers.rateLimit.limit}, Reset at ${activities.headers.rateLimit.resetAt})" }
+                        logger.warn { "Rate limit: API calls (/${activities.request.url}) seem to be frequent than expected so consider adjusting `activity_refresh` value in config.json. Sleep 10 secs. (${activities.headers.rateLimit.remaining}/${activities.headers.rateLimit.limit}, Reset at ${activities.headers.rateLimit.resetAt})" }
                         delay(10, TimeUnit.SECONDS)
                     }
                 }
