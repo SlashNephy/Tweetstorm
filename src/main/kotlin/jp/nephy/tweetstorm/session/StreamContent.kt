@@ -7,8 +7,6 @@ import io.ktor.request.ApplicationRequest
 import jp.nephy.jsonkt.JsonModel
 import jp.nephy.jsonkt.jsonObject
 import jp.nephy.jsonkt.toJsonString
-import jp.nephy.tweetstorm.escapeHtml
-import jp.nephy.tweetstorm.escapeUnicode
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.io.ByteWriteChannel
 import kotlinx.coroutines.experimental.io.writeStringUtf8
@@ -87,6 +85,21 @@ class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> U
 
         suspend fun heartbeat(): Boolean {
             return writeWrap(delimiter)
+        }
+
+        private fun String.escapeHtml(): String {
+            return replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        }
+
+        private fun String.escapeUnicode(): String {
+            return map {
+                val code = it.toInt()
+                if (code in 0 until 128) {
+                    "$it"
+                } else {
+                    String.format("\\u%04x", code)
+                }
+            }.joinToString("")
         }
     }
 }
