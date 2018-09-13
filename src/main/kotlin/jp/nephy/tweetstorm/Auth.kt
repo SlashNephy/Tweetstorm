@@ -1,9 +1,6 @@
 package jp.nephy.tweetstorm
 
-import io.ktor.http.Headers
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
-import io.ktor.http.Parameters
+import io.ktor.http.*
 import java.net.URLDecoder
 import java.util.*
 import javax.crypto.Mac
@@ -27,12 +24,12 @@ fun Headers.parseAuthorizationHeaderStrict(method: HttpMethod, url: String, quer
         val signatureParam = authorizationData.toSortedMap()
         signatureParam.remove("oauth_signature")
         query.forEach { k, v ->
-            signatureParam[k.encodeURL()] = v.last().encodeURL()
+            signatureParam[k.encodeURLParameter()] = v.last().encodeURLParameter()
         }
-        val signatureParamString = signatureParam.toList().joinToString("&") { "${it.first}=${it.second}" }.encodeURL()
-        val signatureBaseString = "${method.value}&${url.encodeURL()}&$signatureParamString"
+        val signatureParamString = signatureParam.toList().joinToString("&") { "${it.first}=${it.second}" }.encodeOAuth()
+        val signatureBaseString = "${method.value}&${url.encodeOAuth()}&$signatureParamString"
 
-        val signingKey = SecretKeySpec("${account.cs.encodeURL()}&${account.ats.encodeURL()}".toByteArray(), "HmacSHA1")
+        val signingKey = SecretKeySpec("${account.cs.encodeOAuth()}&${account.ats.encodeOAuth()}".toByteArray(), "HmacSHA1")
         val signature = Mac.getInstance(signingKey.algorithm).apply {
             init(signingKey)
         }.doFinal(signatureBaseString.toByteArray()).let {
