@@ -67,10 +67,10 @@ abstract class TimelineTask(account: Config.Account, private val time: Long, pri
                 if (timeline.headers.rateLimit.hasLimit) {
                     val duration = Duration.between(Instant.now(), timeline.headers.rateLimit.resetAt!!.toInstant())
                     if (timeline.headers.rateLimit.remaining!! < 2) {
-                        // streamLogger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.headers.rateLimit.resetAt})" }
+                        logger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${timeline.headers.rateLimit.resetAt})" }
                         delay(duration)
                     } else if (duration.seconds > 3 && timeline.headers.rateLimit.remaining!! * time.toDouble() / duration.seconds < 1) {
-                        // streamLogger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh_sec` value in config.json. Sleep 10 secs. (${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt})" }
+                        logger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh` value in config.json. Sleep 10 secs. (${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt})" }
                         delay(10, TimeUnit.SECONDS)
                     }
                     logger.trace { "Rate limit: ${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt}" }
