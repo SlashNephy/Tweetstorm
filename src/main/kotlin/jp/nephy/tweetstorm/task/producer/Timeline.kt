@@ -22,7 +22,12 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.CoroutineContext
 
-private val timelineOptions = arrayOf("include_entities" to "true", "include_rts" to "true", "tweet_mode" to "extended")
+private val timelineOptions = arrayOf(
+        "include_entities" to "true",
+        "include_rts" to "true",
+        "include_my_retweet" to "true",
+        "tweet_mode" to "extended"
+)
 
 class ListTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.listTimeline, {
     account.twitter.list.timeline(listId = account.listId, count = 200, sinceId = it, options = *timelineOptions)
@@ -88,5 +93,12 @@ abstract class TimelineTask(account: Config.Account, private val time: Long, pri
 
 private fun Status.postProcess() = apply {
     // For compatibility
-    json["text"] = json["full_text"].string
+    json["text"] = json.remove("full_text").string
+    json["truncated"] = false
+    json.remove("display_text_range")
+    json["quote_count"] = 0
+    json["reply_count"] = 0
+    json["possibly_sensitive"] = false
+    json["filter_level"] = "low"
+    json["timestamp_ms"] = createdAt.date.time.toString()
 }
