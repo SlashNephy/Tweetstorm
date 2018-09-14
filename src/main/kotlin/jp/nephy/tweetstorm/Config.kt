@@ -8,6 +8,8 @@ import jp.nephy.penicillin.core.allIds
 import java.nio.file.Path
 import java.nio.file.Paths
 
+private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.Config")
+
 data class Config(override val json: JsonObject): JsonModel {
     companion object {
         private val defaultConfigPath = Paths.get("config.json")
@@ -87,12 +89,32 @@ data class Config(override val json: JsonObject): JsonModel {
 
         val refresh by lazy { RefreshTime(json) }
         data class RefreshTime(override val json: JsonObject): JsonModel {
-            val listTimeline by json.byLong("list_timeline_refresh") { 1500 }
-            val userTimeline by json.byLong("user_timeline_refresh") { 1500 }
-            val mentionTimeline by json.byLong("mention_timeline_refresh") { 30000 }
-            val homeTimeline by json.byLong("home_timeline_refresh") { 75000 }
-            val directMessage by json.byLong("direct_message_refresh") { 75000 }
-            val activity by json.byLong("activity_refresh") { 8000 }
+            private val listTimelineSec by json.byNullableLong("list_timeline_refresh_sec")
+            private val userTimelineSec by json.byNullableLong("user_timeline_refresh_sec")
+            private val mentionTimelineSec by json.byNullableLong("mention_timeline_refresh_sec")
+            private val homeTimelineSec by json.byNullableLong("home_timeline_refresh_sec")
+            private val directMessageSec by json.byNullableLong("direct_message_refresh_sec")
+            private val activitySec by json.byNullableLong("activity_refresh_sec")
+
+            init {
+                if (listTimelineSec != null || userTimelineSec != null || mentionTimelineSec != null || homeTimelineSec != null || directMessageSec != null || activitySec != null) {
+                    logger.warn { "`*_refresh_sec` are deprecated in config.json. Please use `*_refresh` instead." }
+                }
+            }
+
+            private val listTimelineMs by json.byLong("list_timeline_refresh") { 1500 }
+            private val userTimelineMs by json.byLong("user_timeline_refresh") { 1500 }
+            private val mentionTimelineMs by json.byLong("mention_timeline_refresh") { 30000 }
+            private val homeTimelineMs by json.byLong("home_timeline_refresh") { 75000 }
+            private val directMessageMs by json.byLong("direct_message_refresh") { 75000 }
+            private val activityMs by json.byLong("activity_refresh") { 8000 }
+
+            val listTimeline by lazy { listTimelineSec?.times(1000) ?: listTimelineMs }
+            val userTimeline by lazy { userTimelineSec?.times(1000) ?: userTimelineMs }
+            val mentionTimeline by lazy { mentionTimelineSec?.times(1000) ?: mentionTimelineMs }
+            val homeTimeline by lazy { homeTimelineSec?.times(1000) ?: homeTimelineMs }
+            val directMessage by lazy { directMessageSec?.times(1000) ?: directMessageMs }
+            val activity by lazy { activitySec?.times(1000) ?: activityMs }
         }
     }
 }
