@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.Coroutines
 val ktorVersion = "0.9.4"
 
 plugins {
-    kotlin("jvm") version "1.2.61"
+    kotlin("jvm") version "1.2.70"
     application
 }
 
@@ -27,7 +27,7 @@ dependencies {
     compile("io.ktor:ktor-html-builder:$ktorVersion")
     compile("org.jetbrains.kotlinx:atomicfu:0.11.3")
 
-    compile("jp.nephy:penicillin:3.0.7")
+    compile("jp.nephy:penicillin:3.0.8")
     compile("commons-cli:commons-cli:1.4")
 
     compile("io.github.microutils:kotlin-logging:1.5.9")
