@@ -7,6 +7,7 @@ import jp.nephy.tweetstorm.task.RegularTask
 import jp.nephy.tweetstorm.task.producer.*
 import jp.nephy.tweetstorm.task.regular.SyncList
 import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.selects.select
 import kotlinx.coroutines.experimental.sync.Mutex
 import kotlinx.coroutines.experimental.sync.withLock
@@ -48,7 +49,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
 
                 if (listContainsSelf && account.syncList.enabled) {
                     it += UserTimeline(account) { status ->
-                        status.inReplyToUserId !in account.friends
+                        status.retweetedStatus == null && status.inReplyToUserId != null && status.inReplyToUserId!! !in account.friends
                     }
                     it += MentionTimeline(account) { status ->
                         status.user.id !in account.friends
@@ -60,7 +61,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
             } else {
                 it += HomeTimeline(account)
                 it += UserTimeline(account) { status ->
-                    status.inReplyToUserId !in account.friends
+                    status.retweetedStatus == null && status.inReplyToUserId != null && status.inReplyToUserId!! !in account.friends
                 }
                 it += MentionTimeline(account) { status ->
                     status.user.id !in account.friends
@@ -123,14 +124,14 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                 task.logger.debug { "ProduceTask: ${task.javaClass.simpleName} started." }
 
                 while (isActive) {
-                    val channel = task.channel(kotlin.coroutines.experimental.coroutineContext, masterJob)
-                    val data = channel.receive()
-                    for (stream in streams) {
-                        if (data.emit(stream.handler)) {
-                            task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) emitted successfully." }
-                        } else {
-                            task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) failed to deliver." }
-                            unregister(stream)
+                    task.channel(kotlin.coroutines.experimental.coroutineContext, masterJob).consumeEach { data ->
+                        for (stream in streams) {
+                            if (data.emit(stream.handler)) {
+                                task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) emitted successfully." }
+                            } else {
+                                task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) failed to deliver." }
+                                unregister(stream)
+                            }
                         }
                     }
                 }
