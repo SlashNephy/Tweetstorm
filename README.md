@@ -1,4 +1,4 @@
-[![Kotlin 1.2.61](https://img.shields.io/badge/Kotlin-1.2.61-blue.svg)](http://kotlinlang.org)
+[![Kotlin 1.2.70](https://img.shields.io/badge/Kotlin-1.2.70-blue.svg)](http://kotlinlang.org)
 [![Licence](https://img.shields.io/github/license/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/release/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/releases)
 [![Docker Build Status](https://shields.beevelop.com/docker/pulls/slashnephy/tweetstorm.svg)](https://hub.docker.com/r/slashnephy/tweetstorm)
