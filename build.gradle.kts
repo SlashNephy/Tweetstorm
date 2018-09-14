@@ -17,7 +17,7 @@ group = "jp.nephy"
 repositories {
     mavenCentral()
     jcenter()
-    maven(url = "http://kotlin.bintray.com/ktor")
+    maven(url = "https://kotlin.bintray.com/ktor")
 }
 
 dependencies {
@@ -27,7 +27,7 @@ dependencies {
     compile("io.ktor:ktor-html-builder:$ktorVersion")
     compile("org.jetbrains.kotlinx:atomicfu:0.11.3")
 
-    compile("jp.nephy:penicillin:3.0.8")
+    compile("jp.nephy:penicillin:3.0.9")
     compile("commons-cli:commons-cli:1.4")
 
     compile("io.github.microutils:kotlin-logging:1.5.9")
