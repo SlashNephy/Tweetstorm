@@ -27,7 +27,8 @@ dependencies {
     compile("io.ktor:ktor-html-builder:$ktorVersion")
     compile("org.jetbrains.kotlinx:atomicfu:0.11.3")
 
-    compile("jp.nephy:penicillin:3.0.9")
+    compile("jp.nephy:penicillin:3.0.12")
+    compile("io.ktor:ktor-client-apache:$ktorVersion")
     compile("commons-cli:commons-cli:1.4")
 
     compile("io.github.microutils:kotlin-logging:1.5.9")
