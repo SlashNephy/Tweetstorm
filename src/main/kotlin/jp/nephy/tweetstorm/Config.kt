@@ -2,9 +2,11 @@ package jp.nephy.tweetstorm
 
 import ch.qos.logback.classic.Level
 import com.google.gson.JsonObject
+import io.ktor.client.engine.apache.Apache
 import jp.nephy.jsonkt.*
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.allIds
+import kotlinx.coroutines.experimental.CommonPool
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -41,22 +43,6 @@ data class Config(override val json: JsonObject): JsonModel {
 
     val accounts by json.byModelList<Account>()
     data class Account(override val json: JsonObject): JsonModel {
-        val twitter by lazy {
-            PenicillinClient {
-                account {
-                    application(ck, cs)
-                    token(at, ats)
-                }
-                skipEmulationChecking()
-            }
-        }
-        val user by lazy {
-            twitter.account.verifyCredentials().complete().result
-        }
-        val friends by lazy {
-            twitter.friend.listIds(count = 5000).complete().untilLast().allIds
-        }
-
         val ck by json.byString
         val cs by json.byString
         val at by json.byString
@@ -115,6 +101,26 @@ data class Config(override val json: JsonObject): JsonModel {
             val homeTimeline by lazy { homeTimelineSec?.times(1000) ?: homeTimelineMs }
             val directMessage by lazy { directMessageSec?.times(1000) ?: directMessageMs }
             val activity by lazy { activitySec?.times(1000) ?: activityMs }
+        }
+
+        val twitter = PenicillinClient {
+            account {
+                application(ck, cs)
+                token(at, ats)
+            }
+            skipEmulationChecking()
+            httpClient(Apache) {
+                engine {
+                    dispatcher = CommonPool
+                }
+            }
+        }
+
+        val user by lazy {
+            twitter.account.verifyCredentials().complete().result
+        }
+        val friends by lazy {
+            twitter.friend.listIds(count = 5000).complete().untilLast().allIds
         }
     }
 }
