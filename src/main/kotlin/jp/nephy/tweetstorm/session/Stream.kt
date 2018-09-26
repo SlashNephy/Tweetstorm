@@ -4,7 +4,6 @@ import io.ktor.request.ApplicationRequest
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.io.ByteWriteChannel
 import java.io.Closeable
-import java.io.Writer
 
 abstract class Stream<T>(channel: ByteWriteChannel, val request: ApplicationRequest): Closeable {
     val job = Job()
