@@ -39,7 +39,7 @@ class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> U
             get() = !channel.isClosedForWrite
 
         private suspend fun writeWrap(content: String): Boolean {
-            if (channel.isClosedForWrite){
+            if (!isAlive){
                 return false
             }
 

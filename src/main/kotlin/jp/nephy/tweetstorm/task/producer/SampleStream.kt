@@ -15,7 +15,7 @@ import kotlin.coroutines.experimental.CoroutineContext
 class SampleStream(account: Config.Account): ProduceTask<JsonObjectData>(account) {
     override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
         val stream = account.twitter.stream.sample().await().listen(object: SampleStreamListener {
-            override suspend fun onRawJson(json: JsonObject) {
+            override suspend fun onAnyJson(json: JsonObject) {
                 send(JsonObjectData(json))
             }
 
