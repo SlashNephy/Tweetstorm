@@ -22,27 +22,20 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.CoroutineContext
 
-private val timelineOptions = arrayOf(
-        "include_entities" to "true",
-        "include_rts" to "true",
-        "include_my_retweet" to "true",
-        "tweet_mode" to "extended"
-)
-
 class ListTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.listTimeline, {
-    account.twitter.list.timeline(listId = account.listId, count = 200, sinceId = it, options = *timelineOptions)
+    account.twitter.list.timeline(listId = account.listId, count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
 class HomeTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.homeTimeline, {
-    account.twitter.timeline.home(count = 200, sinceId = it, options = *timelineOptions)
+    account.twitter.timeline.home(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
 class UserTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.userTimeline, {
-    account.twitter.timeline.user(count = 200, sinceId = it, options = *timelineOptions)
+    account.twitter.timeline.user(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
 class MentionTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.mentionTimeline, {
-    account.twitter.timeline.mention(count = 200, sinceId = it, options = *timelineOptions)
+    account.twitter.timeline.mention(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
 abstract class TimelineTask(account: Config.Account, private val time: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonModelData>(account) {
