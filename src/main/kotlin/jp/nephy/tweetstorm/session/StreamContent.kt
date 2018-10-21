@@ -1,11 +1,11 @@
 package jp.nephy.tweetstorm.session
 
-import com.google.gson.JsonObject
 import io.ktor.http.*
 import io.ktor.http.content.OutgoingContent
 import io.ktor.request.ApplicationRequest
-import jp.nephy.jsonkt.JsonModel
-import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.ImmutableJsonObject
+import jp.nephy.jsonkt.delegation.JsonModel
+import jp.nephy.jsonkt.immutableJsonObjectOf
 import jp.nephy.jsonkt.toJsonString
 import kotlinx.coroutines.experimental.CancellationException
 import kotlinx.coroutines.experimental.io.ByteWriteChannel
@@ -72,10 +72,10 @@ class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> U
         }
 
         suspend fun emit(vararg pairs: Pair<String, Any?>): Boolean {
-            return emit(jsonObject(*pairs))
+            return emit(immutableJsonObjectOf(*pairs))
         }
 
-        suspend fun emit(json: JsonObject): Boolean {
+        suspend fun emit(json: ImmutableJsonObject): Boolean {
             return emit(json.toJsonString())
         }
 

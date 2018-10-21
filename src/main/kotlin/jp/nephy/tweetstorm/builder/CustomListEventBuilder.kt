@@ -1,12 +1,13 @@
+@file:Suppress("UNUSED")
 package jp.nephy.tweetstorm.builder
 
-import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.mutableJsonObjectOf
 import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.UserStreamListEvent
 import java.util.*
 
 class CustomListEventBuilder(type: ListEventType): JsonBuilder<UserStreamListEvent> {
-    override val json = jsonObject(
+    override val json = mutableJsonObjectOf(
             "event" to type.key,
             "source" to null,
             "target" to null,

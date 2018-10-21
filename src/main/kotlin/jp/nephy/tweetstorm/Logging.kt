@@ -24,10 +24,10 @@ internal class RequestLogging private constructor(private val monitor: Applicati
         call.request.httpMethod == HttpMethod.Get && call.request.path() == "/1.1/user.json"
     }
 
-    private val onStart = { _: Application ->
+    private val onStart: (Application) -> Unit = {
         logger.info("Application is responding at http://${config.wui.host}:${config.wui.port}")
     }
-    private var onStop = { _: Application ->
+    private var onStop: (Application) -> Unit = {
         logger.info("Application stopped.")
     }
 

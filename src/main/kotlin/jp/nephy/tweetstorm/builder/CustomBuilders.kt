@@ -1,3 +1,4 @@
+@file:Suppress("UNUSED")
 package jp.nephy.tweetstorm.builder
 
 import jp.nephy.penicillin.models.*

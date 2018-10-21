@@ -24,7 +24,7 @@ import kotlinx.html.*
 private val logger = logger("Tweetstorm.Routing")
 
 fun Route.getTop() {
-    get("/") { _ ->
+    get("/") {
         call.respondHtmlTemplate(FooterLayout()) {
             footerContent {
                 style {
@@ -99,7 +99,7 @@ fun Route.getUser() {
 
 fun Route.authByToken() {
     route("/auth/token/{urlToken}") {
-        get { _ ->
+        get {
             val urlToken = call.parameters["urlToken"]
             if (urlToken == null || !PreAuthenticatedStream.check(urlToken)) {
                 call.respondHtmlTemplate(NavLayout()) {
@@ -149,7 +149,7 @@ fun Route.authByToken() {
             }
         }
 
-        post { _ ->
+        post {
             val urlToken = call.parameters["urlToken"]
             if (urlToken == null || !PreAuthenticatedStream.check(urlToken)) {
                 return@post call.respond(HttpStatusCode.NotFound)

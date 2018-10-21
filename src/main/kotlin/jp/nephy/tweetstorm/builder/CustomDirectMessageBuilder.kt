@@ -1,14 +1,15 @@
+@file:Suppress("UNUSED")
 package jp.nephy.tweetstorm.builder
 
-import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.mutableJsonObjectOf
 import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.DirectMessage
 import java.util.*
 
 class CustomDirectMessageBuilder: JsonBuilder<DirectMessage> {
-    override val json = jsonObject(
+    override val json = mutableJsonObjectOf(
             "created_at" to null,
-            "entities" to jsonObject(),
+            "entities" to mutableJsonObjectOf(),
             "id" to null,
             "id_str" to null,
             "read" to false,
