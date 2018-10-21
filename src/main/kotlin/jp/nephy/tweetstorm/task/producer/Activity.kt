@@ -1,6 +1,7 @@
 package jp.nephy.tweetstorm.task.producer
 
-import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.asMutable
+import jp.nephy.jsonkt.immutableJsonObject
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.TwitterErrorMessage
@@ -49,7 +50,7 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
                             when (type) {
                                 is StatusEventType, is ListEventType -> {
                                     val (source, targetObject) = event.sources.first().json to event.targets.first().json
-                                    val target = targetObject.remove("user").jsonObject
+                                    val target = targetObject.asMutable().remove("user")!!.immutableJsonObject
                                     send(
                                             JsonData(
                                                     "event" to type.key,

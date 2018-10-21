@@ -1,16 +1,17 @@
+@file:Suppress("UNUSED")
 package jp.nephy.tweetstorm.builder
 
 import jp.nephy.jsonkt.get
-import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.mutableJsonObjectOf
 import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.StreamDelete
 import java.util.*
 import kotlin.properties.Delegates
 
 class CustomDeleteBuilder: JsonBuilder<StreamDelete> {
-    override val json = jsonObject(
-            "delete" to jsonObject(
-                    "status" to jsonObject(
+    override val json = mutableJsonObjectOf(
+            "delete" to mutableJsonObjectOf(
+                    "status" to mutableJsonObjectOf(
                             "id" to null,
                             "id_str" to null,
                             "user_id" to null,

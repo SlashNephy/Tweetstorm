@@ -1,9 +1,11 @@
 package jp.nephy.tweetstorm
 
 import ch.qos.logback.classic.Level
-import com.google.gson.JsonObject
 import io.ktor.client.engine.apache.Apache
-import jp.nephy.jsonkt.*
+import jp.nephy.jsonkt.ImmutableJsonObject
+import jp.nephy.jsonkt.delegation.*
+import jp.nephy.jsonkt.nullableString
+import jp.nephy.jsonkt.parse
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.allIds
 import kotlinx.coroutines.experimental.CommonPool
@@ -12,7 +14,7 @@ import java.nio.file.Paths
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.Config")
 
-data class Config(override val json: JsonObject): JsonModel {
+data class Config(override val json: ImmutableJsonObject): JsonModel {
     companion object {
         private val defaultConfigPath = Paths.get("config.json")
 
@@ -26,61 +28,61 @@ data class Config(override val json: JsonObject): JsonModel {
     }
 
     val wui by lazy { WebUI(json) }
-    data class WebUI(override val json: JsonObject): JsonModel {
-        val host by json.byString { "127.0.0.1" }
-        val port by json.byInt { 8080 }
-        val maxConnections by json.byNullableInt("max_connections")
+    data class WebUI(override val json: ImmutableJsonObject): JsonModel {
+        val host by string { "127.0.0.1" }
+        val port by int { 8080 }
+        val maxConnections by nullableInt("max_connections")
     }
 
     val app by lazy { App(json) }
-    data class App(override val json: JsonObject): JsonModel {
-        val skipAuth by json.byBool("skip_auth") { false }
-        val apiTimeout by json.byLong("api_timeout") { 3000 }
-        val commonPoolParallelism by json.byNullableInt("common_pool_parallelism")
+    data class App(override val json: ImmutableJsonObject): JsonModel {
+        val skipAuth by boolean("skip_auth") { false }
+        val apiTimeout by long("api_timeout") { 3000 }
+        val commonPoolParallelism by nullableInt("common_pool_parallelism")
     }
 
-    val logLevel by lazy { Level.toLevel(json.getOrNull("log_level")?.toStringOrNull(), Level.INFO)!! }
+    val logLevel by lambda("log_level") { Level.toLevel(it.nullableString, Level.INFO)!! }
 
-    val accounts by json.byModelList<Account>()
-    data class Account(override val json: JsonObject): JsonModel {
-        val ck by json.byString
-        val cs by json.byString
-        val at by json.byString
-        val ats by json.byString
-        val listId by json.byNullableLong("list_id")
-        val token by json.byNullableString
+    val accounts by modelList<Account>()
+    data class Account(override val json: ImmutableJsonObject): JsonModel {
+        val ck by string
+        val cs by string
+        val at by string
+        val ats by string
+        val listId by nullableLong("list_id")
+        val token by nullableString
 
-        val enableDirectMessage by json.byBool("enable_direct_message") { true }
-        val enableActivity by json.byBool("enable_activity") { false }
-        val enableFriends by json.byBool("enable_friends") { true }
-        val enableSampleStream by json.byBool("enable_sample_stream") { false }
+        val enableDirectMessage by boolean("enable_direct_message") { true }
+        val enableActivity by boolean("enable_activity") { false }
+        val enableFriends by boolean("enable_friends") { true }
+        val enableSampleStream by boolean("enable_sample_stream") { false }
 
         val filterStream by lazy { FilterStream(json) }
-        data class FilterStream(override val json: JsonObject): JsonModel {
-            val tracks by json.byStringList("filter_stream_tracks")
-            val follows by json.byLongList("filter_stream_follows")
+        data class FilterStream(override val json: ImmutableJsonObject): JsonModel {
+            val tracks by stringList("filter_stream_tracks")
+            val follows by longList("filter_stream_follows")
         }
 
         val syncList by lazy { SyncList(json) }
-        data class SyncList(override val json: JsonObject): JsonModel {
-            val enabled by json.byBool("sync_list_following") { false }
-            val includeSelf by json.byBool("sync_list_include_self") { true }
+        data class SyncList(override val json: ImmutableJsonObject): JsonModel {
+            val enabled by boolean("sync_list_following") { false }
+            val includeSelf by boolean("sync_list_include_self") { true }
         }
 
         val t4i by lazy { T4iCredentials(json) }
-        data class T4iCredentials(override val json: JsonObject): JsonModel {
-            val at by json.byNullableString("t4i_at")
-            val ats by json.byNullableString("t4i_ats")
+        data class T4iCredentials(override val json: ImmutableJsonObject): JsonModel {
+            val at by nullableString("t4i_at")
+            val ats by nullableString("t4i_ats")
         }
 
         val refresh by lazy { RefreshTime(json) }
-        data class RefreshTime(override val json: JsonObject): JsonModel {
-            private val listTimelineSec by json.byNullableLong("list_timeline_refresh_sec")
-            private val userTimelineSec by json.byNullableLong("user_timeline_refresh_sec")
-            private val mentionTimelineSec by json.byNullableLong("mention_timeline_refresh_sec")
-            private val homeTimelineSec by json.byNullableLong("home_timeline_refresh_sec")
-            private val directMessageSec by json.byNullableLong("direct_message_refresh_sec")
-            private val activitySec by json.byNullableLong("activity_refresh_sec")
+        data class RefreshTime(override val json: ImmutableJsonObject): JsonModel {
+            private val listTimelineSec by nullableLong("list_timeline_refresh_sec")
+            private val userTimelineSec by nullableLong("user_timeline_refresh_sec")
+            private val mentionTimelineSec by nullableLong("mention_timeline_refresh_sec")
+            private val homeTimelineSec by nullableLong("home_timeline_refresh_sec")
+            private val directMessageSec by nullableLong("direct_message_refresh_sec")
+            private val activitySec by nullableLong("activity_refresh_sec")
 
             init {
                 if (listTimelineSec != null || userTimelineSec != null || mentionTimelineSec != null || homeTimelineSec != null || directMessageSec != null || activitySec != null) {
@@ -88,12 +90,12 @@ data class Config(override val json: JsonObject): JsonModel {
                 }
             }
 
-            private val listTimelineMs by json.byLong("list_timeline_refresh") { 1500 }
-            private val userTimelineMs by json.byLong("user_timeline_refresh") { 1500 }
-            private val mentionTimelineMs by json.byLong("mention_timeline_refresh") { 30000 }
-            private val homeTimelineMs by json.byLong("home_timeline_refresh") { 75000 }
-            private val directMessageMs by json.byLong("direct_message_refresh") { 75000 }
-            private val activityMs by json.byLong("activity_refresh") { 8000 }
+            private val listTimelineMs by long("list_timeline_refresh") { 1500 }
+            private val userTimelineMs by long("user_timeline_refresh") { 1500 }
+            private val mentionTimelineMs by long("mention_timeline_refresh") { 30000 }
+            private val homeTimelineMs by long("home_timeline_refresh") { 75000 }
+            private val directMessageMs by long("direct_message_refresh") { 75000 }
+            private val activityMs by long("activity_refresh") { 8000 }
 
             val listTimeline by lazy { listTimelineSec?.times(1000) ?: listTimelineMs }
             val userTimeline by lazy { userTimelineSec?.times(1000) ?: userTimelineMs }

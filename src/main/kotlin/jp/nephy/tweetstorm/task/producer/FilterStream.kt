@@ -1,6 +1,6 @@
 package jp.nephy.tweetstorm.task.producer
 
-import com.google.gson.JsonObject
+import jp.nephy.jsonkt.ImmutableJsonObject
 import jp.nephy.penicillin.core.streaming.FilterStreamListener
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.task.ProduceTask
@@ -15,7 +15,7 @@ import kotlin.coroutines.experimental.CoroutineContext
 class FilterStream(account: Config.Account): ProduceTask<JsonObjectData>(account) {
     override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
         val stream = account.twitter.stream.filter(track = account.filterStream.tracks, follow = account.filterStream.follows).await().listen(object: FilterStreamListener {
-            override suspend fun onAnyJson(json: JsonObject) {
+            override suspend fun onAnyJson(json: ImmutableJsonObject) {
                 send(JsonObjectData(json))
             }
 

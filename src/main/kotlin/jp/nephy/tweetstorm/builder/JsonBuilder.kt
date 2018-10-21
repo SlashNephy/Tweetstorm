@@ -1,9 +1,9 @@
 package jp.nephy.tweetstorm.builder
 
-import com.google.gson.JsonObject
-import jp.nephy.jsonkt.JsonModel
+import jp.nephy.jsonkt.MutableJsonObject
+import jp.nephy.jsonkt.delegation.JsonModel
 
 interface JsonBuilder<T: JsonModel> {
-    val json: JsonObject
+    val json: MutableJsonObject
     fun build(): T
 }

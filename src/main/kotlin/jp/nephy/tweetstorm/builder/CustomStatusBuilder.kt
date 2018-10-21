@@ -1,15 +1,13 @@
+@file:Suppress("UNUSED")
 package jp.nephy.tweetstorm.builder
 
-import jp.nephy.jsonkt.get
-import jp.nephy.jsonkt.jsonArray
-import jp.nephy.jsonkt.jsonObject
-import jp.nephy.jsonkt.set
+import jp.nephy.jsonkt.*
 import jp.nephy.penicillin.models.Status
 import java.text.SimpleDateFormat
 import java.util.*
 
 class CustomStatusBuilder: JsonBuilder<Status> {
-    override val json = jsonObject(
+    override val json = mutableJsonObjectOf(
             "created_at" to null,
             "id" to null,
             "id_str" to null,
@@ -31,11 +29,11 @@ class CustomStatusBuilder: JsonBuilder<Status> {
             "reply_count" to 0,
             "retweet_count" to 0,
             "favorite_count" to 0,
-            "entities" to jsonObject(
-                    "hashtags" to jsonArray(),
-                    "symbols" to jsonArray(),
-                    "user_mentions" to jsonArray(),
-                    "urls" to jsonArray()
+            "entities" to mutableJsonObjectOf(
+                    "hashtags" to mutableJsonArrayOf(),
+                    "symbols" to mutableJsonArrayOf(),
+                    "user_mentions" to mutableJsonArrayOf(),
+                    "urls" to mutableJsonArrayOf()
             ),
             "favorited" to false,
             "retweeted" to false,
@@ -93,10 +91,10 @@ class CustomStatusBuilder: JsonBuilder<Status> {
     }
 
     fun url(url: String, start: Int, end: Int) {
-        json["entities"]["urls"].jsonArray.add(jsonObject(
+        json["entities"]["urls"].mutableJsonArray.add(mutableJsonObjectOf(
                 "display_url" to url.removePrefix("https://").removePrefix("http://"),
                 "url" to url,
-                "indices" to jsonArray(start, end),
+                "indices" to mutableJsonArrayOf(start, end),
                 "expanded_url" to url
         ))
     }

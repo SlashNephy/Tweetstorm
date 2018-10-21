@@ -1,7 +1,8 @@
+@file:Suppress("UNUSED")
 package jp.nephy.tweetstorm.builder
 
-import jp.nephy.jsonkt.jsonArray
-import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.mutableJsonArrayOf
+import jp.nephy.jsonkt.mutableJsonObjectOf
 import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.User
 import java.util.*
@@ -11,7 +12,7 @@ class CustomUserBuilder: JsonBuilder<User> {
         private const val userId = 1L
     }
 
-    override val json = jsonObject(
+    override val json = mutableJsonObjectOf(
             "id" to userId,
             "id_str" to userId.toString(),
             "name" to "Tweetstorm",
@@ -19,19 +20,19 @@ class CustomUserBuilder: JsonBuilder<User> {
             "location" to null,
             "description" to "This account is dummy and is used to deliver internal messages.",
             "url" to "https://github.com/SlashNephy/Tweetstorm",
-            "entities" to jsonObject(
-                    "url" to jsonObject(
-                            "urls" to jsonArray(
-                                    jsonObject(
+            "entities" to mutableJsonObjectOf(
+                    "url" to mutableJsonObjectOf(
+                            "urls" to mutableJsonArrayOf(
+                                    mutableJsonObjectOf(
                                         "display_url" to "github.com/SlashNephy/Tweetstorm",
                                         "url" to "https://t.co/Cn0EQY6Yzd",
-                                        "indices" to jsonArray(0, 23),
+                                        "indices" to mutableJsonArrayOf(0, 23),
                                         "expanded_url" to "https://github.com/SlashNephy/Tweetstorm"
                                     )
                             )
                     ),
-                    "description" to jsonObject(
-                            "urls" to jsonArray()
+                    "description" to mutableJsonObjectOf(
+                            "urls" to mutableJsonArrayOf()
                     )
             ),
             "protected" to false,

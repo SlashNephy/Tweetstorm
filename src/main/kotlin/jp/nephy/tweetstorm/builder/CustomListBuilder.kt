@@ -1,12 +1,13 @@
+@file:Suppress("UNUSED")
 package jp.nephy.tweetstorm.builder
 
-import jp.nephy.jsonkt.jsonObject
+import jp.nephy.jsonkt.mutableJsonObjectOf
 import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.TwitterList
 import java.util.*
 
 class CustomListBuilder: JsonBuilder<TwitterList> {
-    override val json = jsonObject(
+    override val json = mutableJsonObjectOf(
             "created_at" to null,
             "description" to "Tweetstorm",
             "following" to false,

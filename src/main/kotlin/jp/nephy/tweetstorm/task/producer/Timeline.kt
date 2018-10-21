@@ -1,5 +1,6 @@
 package jp.nephy.tweetstorm.task.producer
 
+import jp.nephy.jsonkt.asMutable
 import jp.nephy.jsonkt.set
 import jp.nephy.jsonkt.string
 import jp.nephy.penicillin.core.PenicillinException
@@ -9,7 +10,7 @@ import jp.nephy.penicillin.models.Status
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
-import jp.nephy.tweetstorm.task.data.JsonModelData
+import jp.nephy.tweetstorm.task.data.JsonObjectData
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
 import kotlinx.coroutines.experimental.CancellationException
@@ -38,7 +39,7 @@ class MentionTimeline(account: Config.Account, filter: (Status) -> Boolean = { t
     account.twitter.timeline.mention(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
-abstract class TimelineTask(account: Config.Account, private val time: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonModelData>(account) {
+abstract class TimelineTask(account: Config.Account, private val time: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonObjectData>(account) {
     override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
         val lastId = atomic(0L)
         while (isActive) {
@@ -48,7 +49,7 @@ abstract class TimelineTask(account: Config.Account, private val time: Long, pri
                 if (timeline.isNotEmpty()) {
                     if (lastIdOrNull != null) {
                         timeline.reversed().filter(filter).forEach {
-                            send(JsonModelData(it.postProcess()))
+                            send(JsonObjectData(it.postProcess()))
                         }
                     }
 
@@ -84,9 +85,9 @@ abstract class TimelineTask(account: Config.Account, private val time: Long, pri
     }
 }
 
-private fun Status.postProcess() = apply {
+private fun Status.postProcess() = json.asMutable().also { json ->
     // For compatibility
-    json["text"] = json.remove("full_text").string
+    json["text"] = json.remove("full_text")!!.string
     json["truncated"] = false
     json.remove("display_text_range")
     json["quote_count"] = 0
