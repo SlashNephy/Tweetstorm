@@ -2,7 +2,6 @@
 package jp.nephy.tweetstorm.builder
 
 import jp.nephy.jsonkt.mutableJsonObjectOf
-import jp.nephy.jsonkt.set
 import jp.nephy.penicillin.models.DirectMessage
 import java.util.*
 

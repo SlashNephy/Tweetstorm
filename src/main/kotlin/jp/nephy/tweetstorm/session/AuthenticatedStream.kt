@@ -6,12 +6,16 @@ import io.ktor.util.toMap
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.TaskManager
 import jp.nephy.tweetstorm.logger
-import kotlinx.coroutines.experimental.io.ByteWriteChannel
-import kotlinx.coroutines.experimental.sync.withLock
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.io.ByteWriteChannel
+import kotlinx.coroutines.sync.withLock
 
 private val logger = logger("Tweetstorm.AuthenticatedStream")
 
 class AuthenticatedStream(channel: ByteWriteChannel,request: ApplicationRequest, val account: Config.Account): Stream<Unit>(channel, request) {
+    @ExperimentalCoroutinesApi
+    @ObsoleteCoroutinesApi
     override suspend fun await() {
         logger.info { "Client: @${account.user.screenName} (${request.origin.remoteHost}) connected to UserStream API with parameter ${request.queryParameters.toMap()}." }
 

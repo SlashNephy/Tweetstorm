@@ -3,9 +3,8 @@ package jp.nephy.tweetstorm.session
 import io.ktor.features.origin
 import io.ktor.request.ApplicationRequest
 import jp.nephy.tweetstorm.builder.newStatus
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.io.ByteWriteChannel
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.io.ByteWriteChannel
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.DemoStream")
 
@@ -22,7 +21,7 @@ class DemoStream(channel: ByteWriteChannel, request: ApplicationRequest): Stream
                 if (!handler.heartbeat()) {
                     break
                 }
-                delay(3, TimeUnit.SECONDS)
+                delay(3000)
             }
         } finally {
             logger.info { "Unknown client: ${request.origin.remoteHost} has disconnected from DemoStream." }

@@ -3,11 +3,11 @@ package jp.nephy.tweetstorm
 import io.ktor.application.*
 import io.ktor.features.origin
 import io.ktor.http.HttpMethod
-import io.ktor.pipeline.PipelinePhase
 import io.ktor.request.httpMethod
 import io.ktor.request.path
 import io.ktor.request.userAgent
 import io.ktor.util.AttributeKey
+import io.ktor.util.pipeline.PipelinePhase
 import mu.KLogger
 import mu.KotlinLogging
 
@@ -49,7 +49,7 @@ internal class RequestLogging private constructor(private val monitor: Applicati
             val phase = PipelinePhase("RequestLogging")
             val feature = RequestLogging(pipeline.environment.monitor)
 
-            pipeline.insertPhaseBefore(ApplicationCallPipeline.Infrastructure, phase)
+            pipeline.insertPhaseBefore(ApplicationCallPipeline.Monitoring, phase)
             pipeline.intercept(phase) {
                 proceed()
                 if (!feature.shouldIgnore(call)) {

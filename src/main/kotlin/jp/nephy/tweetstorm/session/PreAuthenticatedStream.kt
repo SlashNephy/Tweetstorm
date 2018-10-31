@@ -4,11 +4,10 @@ import io.ktor.features.origin
 import io.ktor.request.ApplicationRequest
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.builder.newStatus
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.io.ByteWriteChannel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.io.ByteWriteChannel
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.TimeUnit
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.PreAuthenticatedStream")
 
@@ -60,7 +59,7 @@ class PreAuthenticatedStream(channel: ByteWriteChannel, request: ApplicationRequ
                 return false
             }
 
-            delay(1, TimeUnit.SECONDS)
+            delay(1000)
         }
 
         return false

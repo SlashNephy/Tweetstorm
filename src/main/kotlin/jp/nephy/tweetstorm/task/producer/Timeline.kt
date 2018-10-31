@@ -1,7 +1,6 @@
 package jp.nephy.tweetstorm.task.producer
 
 import jp.nephy.jsonkt.asMutable
-import jp.nephy.jsonkt.set
 import jp.nephy.jsonkt.string
 import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.PenicillinJsonArrayAction
@@ -13,15 +12,13 @@ import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonObjectData
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
-import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.channels.produce
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.time.delay
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.time.delay
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.CoroutineContext
 
 class ListTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.listTimeline, {
     account.twitter.list.timeline(listId = account.listId, count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
@@ -40,7 +37,8 @@ class MentionTimeline(account: Config.Account, filter: (Status) -> Boolean = { t
 }, filter)
 
 abstract class TimelineTask(account: Config.Account, private val time: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonObjectData>(account) {
-    override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
+    @ExperimentalCoroutinesApi
+    override fun channel(context: CoroutineContext, parent: Job) = GlobalScope.produce(context + parent) {
         val lastId = atomic(0L)
         while (isActive) {
             try {
@@ -65,7 +63,7 @@ abstract class TimelineTask(account: Config.Account, private val time: Long, pri
                         delay(duration)
                     } else if (duration.seconds > 3 && timeline.headers.rateLimit.remaining!! * time.toDouble() / duration.seconds < 1) {
                         logger.warn { "Rate limit: API calls (/${timeline.request.url}) seem to be frequent than expected so consider adjusting `*_timeline_refresh` value in config.json. Sleep 10 secs. (${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt})" }
-                        delay(10, TimeUnit.SECONDS)
+                        delay(10000)
                     }
                     logger.trace { "Rate limit: ${timeline.headers.rateLimit.remaining}/${timeline.headers.rateLimit.limit}, Reset at ${timeline.headers.rateLimit.resetAt}" }
                 }
@@ -75,7 +73,7 @@ abstract class TimelineTask(account: Config.Account, private val time: Long, pri
                 break
             } catch (e: PenicillinException) {
                 if (e.error == TwitterErrorMessage.RateLimitExceeded) {
-                    delay(10, TimeUnit.SECONDS)
+                    delay(10000)
                 } else {
                     logger.error(e) { "An error occurred while getting timeline." }
                     delay(time)
