@@ -5,7 +5,6 @@ import io.ktor.application.call
 import io.ktor.features.origin
 import io.ktor.html.respondHtmlTemplate
 import io.ktor.http.HttpStatusCode
-import io.ktor.pipeline.PipelineContext
 import io.ktor.request.httpMethod
 import io.ktor.request.path
 import io.ktor.request.receiveParameters
@@ -14,11 +13,12 @@ import io.ktor.routing.Route
 import io.ktor.routing.get
 import io.ktor.routing.post
 import io.ktor.routing.route
+import io.ktor.util.pipeline.PipelineContext
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.session.DemoStream
 import jp.nephy.tweetstorm.session.PreAuthenticatedStream
 import jp.nephy.tweetstorm.session.StreamContent
-import kotlinx.coroutines.experimental.io.ByteWriteChannel
+import kotlinx.coroutines.io.ByteWriteChannel
 import kotlinx.html.*
 
 private val logger = logger("Tweetstorm.Routing")

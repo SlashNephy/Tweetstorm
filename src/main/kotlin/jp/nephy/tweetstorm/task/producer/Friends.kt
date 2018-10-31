@@ -3,12 +3,15 @@ package jp.nephy.tweetstorm.task.producer
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.TargetedProduceTask
 import jp.nephy.tweetstorm.task.data.JsonData
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.channels.produce
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.produce
+import kotlin.coroutines.CoroutineContext
 
 class Friends(private val target: AuthenticatedStream): TargetedProduceTask<JsonData>(target) {
-    override fun channel(context: CoroutineContext, parent: Job) = produce(context, parent = parent) {
+    @ExperimentalCoroutinesApi
+    override fun channel(context: CoroutineContext, parent: Job) = GlobalScope.produce(context + parent) {
         val stringifyFriendIds = target.request.queryParameters["stringify_friend_ids"].orEmpty().toBooleanEasy()
 
         if (stringifyFriendIds) {

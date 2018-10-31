@@ -8,7 +8,6 @@ import jp.nephy.jsonkt.nullableString
 import jp.nephy.jsonkt.parse
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.allIds
-import kotlinx.coroutines.experimental.CommonPool
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -38,7 +37,7 @@ data class Config(override val json: ImmutableJsonObject): JsonModel {
     data class App(override val json: ImmutableJsonObject): JsonModel {
         val skipAuth by boolean("skip_auth") { false }
         val apiTimeout by long("api_timeout") { 3000 }
-        val commonPoolParallelism by nullableInt("common_pool_parallelism")
+        val parallelism by int("parallelism") { maxOf(1, Runtime.getRuntime().availableProcessors() / 2) }
     }
 
     val logLevel by lambda("log_level") { Level.toLevel(it.nullableString, Level.INFO)!! }
@@ -111,18 +110,14 @@ data class Config(override val json: ImmutableJsonObject): JsonModel {
                 token(at, ats)
             }
             skipEmulationChecking()
-            httpClient(Apache) {
-                engine {
-                    dispatcher = CommonPool
-                }
-            }
+            httpClient(Apache)
         }
 
         val user by lazy {
             twitter.account.verifyCredentials().complete().result
         }
         val friends by lazy {
-            twitter.friend.listIds(count = 5000).complete().untilLast().allIds
+            twitter.friend.listIds(count = 5000).untilLast().allIds
         }
     }
 }

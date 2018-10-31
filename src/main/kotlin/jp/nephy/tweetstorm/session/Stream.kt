@@ -1,8 +1,8 @@
 package jp.nephy.tweetstorm.session
 
 import io.ktor.request.ApplicationRequest
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.io.ByteWriteChannel
+import kotlinx.coroutines.*
+import kotlinx.coroutines.io.ByteWriteChannel
 import java.io.Closeable
 
 abstract class Stream<T>(channel: ByteWriteChannel, val request: ApplicationRequest): Closeable {
@@ -12,7 +12,7 @@ abstract class Stream<T>(channel: ByteWriteChannel, val request: ApplicationRequ
     abstract suspend fun await(): T
 
     override fun close() {
-        runBlocking(CommonPool) {
+        runBlocking(Dispatchers.Default) {
             job.cancelChildren()
             job.cancelAndJoin()
         }

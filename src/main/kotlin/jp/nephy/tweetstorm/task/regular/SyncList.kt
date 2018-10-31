@@ -9,9 +9,9 @@ import java.util.concurrent.TimeUnit
 class SyncList(account: Config.Account): RegularTask(account, 5, TimeUnit.MINUTES) {
     override suspend fun run() {
         val followingIds = if (account.syncList.includeSelf) {
-            account.twitter.friend.listIds(count = 5000).await().untilLast().allIds + account.user.id
+            account.twitter.friend.listIds(count = 5000).untilLast().allIds + account.user.id
         } else {
-            account.twitter.friend.listIds(count = 5000).await().untilLast().allIds
+            account.twitter.friend.listIds(count = 5000).untilLast().allIds
         }
 
         if (followingIds.size > 5000) {
@@ -19,7 +19,7 @@ class SyncList(account: Config.Account): RegularTask(account, 5, TimeUnit.MINUTE
             return
         }
 
-        val listMemberIds = account.twitter.list.members(listId = account.listId, count = 5000).await().untilLast().allUsers.map { it.id }
+        val listMemberIds = account.twitter.list.members(listId = account.listId, count = 5000).untilLast().allUsers.map { it.id }
 
         val willBeRemoved = listMemberIds - followingIds
         if (willBeRemoved.isNotEmpty()) {

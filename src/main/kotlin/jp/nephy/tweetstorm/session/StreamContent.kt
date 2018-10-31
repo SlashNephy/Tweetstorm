@@ -7,15 +7,14 @@ import jp.nephy.jsonkt.ImmutableJsonObject
 import jp.nephy.jsonkt.delegation.JsonModel
 import jp.nephy.jsonkt.immutableJsonObjectOf
 import jp.nephy.jsonkt.toJsonString
-import kotlinx.coroutines.experimental.CancellationException
-import kotlinx.coroutines.experimental.io.ByteWriteChannel
-import kotlinx.coroutines.experimental.io.writeStringUtf8
-import kotlinx.coroutines.experimental.runBlocking
-import kotlinx.coroutines.experimental.sync.Mutex
-import kotlinx.coroutines.experimental.sync.withLock
-import kotlinx.coroutines.experimental.withTimeout
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.io.ByteWriteChannel
+import kotlinx.coroutines.io.writeStringUtf8
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 private const val delimiter = "\r\n"
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.StreamContent")
@@ -45,7 +44,7 @@ class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> U
 
             return try {
                 lock.withLock {
-                    withTimeout(1, TimeUnit.SECONDS) {
+                    withTimeout(1000) {
                         channel.writeStringUtf8(content)
                         channel.flush()
                     }

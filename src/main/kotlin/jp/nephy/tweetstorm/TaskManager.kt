@@ -6,14 +6,13 @@ import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.RegularTask
 import jp.nephy.tweetstorm.task.producer.*
 import jp.nephy.tweetstorm.task.regular.SyncList
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.selects.select
-import kotlinx.coroutines.experimental.sync.Mutex
-import kotlinx.coroutines.experimental.sync.withLock
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.Closeable
 import java.util.concurrent.CopyOnWriteArraySet
-import java.util.concurrent.TimeUnit
 
 class TaskManager(initialStream: AuthenticatedStream): Closeable {
     companion object {
@@ -94,6 +93,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         }
     }
 
+    @ExperimentalCoroutinesApi
     suspend fun register(stream: AuthenticatedStream) {
         if (streamsMutex.withLock { streams.add(stream) }) {
             stream.startTargetedTasks()
@@ -110,21 +110,23 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
 
     suspend fun wait(stream: AuthenticatedStream) {
         while (stream.handler.isAlive) {
-            delay(1, TimeUnit.SECONDS)
+            delay(1000)
         }
 
         unregister(stream)
     }
 
+    @ObsoleteCoroutinesApi
+    @ExperimentalCoroutinesApi
     suspend fun start(target: AuthenticatedStream) {
         target.startTargetedTasks()
 
         for (task in tasks.produce) {
-            launch(parent = masterJob) {
+            GlobalScope.launch(dispatcher + masterJob) {
                 task.logger.debug { "ProduceTask: ${task.javaClass.simpleName} started." }
 
                 while (isActive) {
-                    task.channel(kotlin.coroutines.experimental.coroutineContext, masterJob).consumeEach { data ->
+                    task.channel(coroutineContext, masterJob).consumeEach { data ->
                         for (stream in streams) {
                             if (data.emit(stream.handler)) {
                                 task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) emitted successfully." }
@@ -139,33 +141,34 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         }
 
         for (task in tasks.regular) {
-            launch(parent = masterJob) {
+            GlobalScope.launch(dispatcher + masterJob) {
                 while (isActive) {
                     task.logger.debug { "RegularTask: ${task.javaClass.simpleName} started." }
 
                     try {
                         task.run()
                         task.logger.trace { "RegularTask: ${task.javaClass.simpleName} finished successfully." }
-                        delay(task.interval, task.unit)
+                        delay(task.unit.toMillis(task.interval))
                     } catch (e: CancellationException) {
                         task.logger.debug { "RegularTask: ${task.javaClass.simpleName} will terminate." }
                         break
                     } catch (e: Exception) {
                         task.logger.error(e) { "An error occurred while regular task." }
-                        delay(task.interval, task.unit)
+                        delay(task.unit.toMillis(task.interval))
                     }
                 }
             }
         }
     }
 
+    @ExperimentalCoroutinesApi
     private suspend fun AuthenticatedStream.startTargetedTasks() {
-        launch(parent = masterJob) {
+        GlobalScope.launch(dispatcher + masterJob) {
             select {
                 if (account.enableFriends) {
                     val task = Friends(this@startTargetedTasks)
-                    launch(parent = job) {
-                        task.channel(kotlin.coroutines.experimental.coroutineContext, masterJob).onReceive { data ->
+                    launch(dispatcher + job) {
+                        task.channel(coroutineContext, masterJob).onReceive { data ->
                             if (data.emit(handler)) {
                                 task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) emitted successfully." }
                             } else {
@@ -182,7 +185,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
 
     override fun close() {
-        runBlocking(CommonPool) {
+        runBlocking(Dispatchers.Default) {
             masterJob.cancelChildren()
             masterJob.cancelAndJoin()
         }
