@@ -1,6 +1,7 @@
 package jp.nephy.tweetstorm.task.producer
 
 import jp.nephy.jsonkt.ImmutableJsonObject
+import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.streaming.SampleStreamListener
 import jp.nephy.tweetstorm.Config
 import jp.nephy.tweetstorm.task.ProduceTask
@@ -9,10 +10,10 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.produce
 import kotlin.coroutines.CoroutineContext
 
-class SampleStream(account: Config.Account): ProduceTask<JsonObjectData>(account) {
+class SampleStream(account: Config.Account, private val client: PenicillinClient): ProduceTask<JsonObjectData>(account) {
     @ExperimentalCoroutinesApi
     override fun channel(context: CoroutineContext, parent: Job) = GlobalScope.produce(context + parent) {
-        val stream = account.twitter.stream.sample().await().listen(object: SampleStreamListener {
+        client.stream.sample().await().listen(object: SampleStreamListener {
             override suspend fun onAnyJson(json: ImmutableJsonObject) {
                 send(JsonObjectData(json))
             }
@@ -24,14 +25,13 @@ class SampleStream(account: Config.Account): ProduceTask<JsonObjectData>(account
             override suspend fun onDisconnect() {
                 logger.warn { "Disconnected from SampleStream." }
             }
-        }).startAsync(autoReconnect = true)
-
-        while (isActive) {
-            try {
-                delay(1000)
-            } catch (e: CancellationException) {
-                stream.close()
-                break
+        }).startAsync(autoReconnect = true).use {
+            while (isActive) {
+                try {
+                    delay(1000)
+                } catch (e: CancellationException) {
+                    break
+                }
             }
         }
     }

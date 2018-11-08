@@ -26,21 +26,22 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
 
 class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
-    private val twitter = PenicillinClient {
-        account {
-            application(OfficialClient.OAuth1a.TwitterForiPhone)
-            token(account.t4i.at!!, account.t4i.ats!!)
-        }
-        emulationMode = EmulationMode.TwitterForiPhone
-        skipEmulationChecking()
-    }
-
     @ExperimentalCoroutinesApi
     override fun channel(context: CoroutineContext, parent: Job) = GlobalScope.produce(context + parent) {
         val lastId = atomic(0L)
         while (isActive) {
             try {
-                val activities = twitter.activity.aboutMe().awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS) ?: continue
+                val activities = PenicillinClient {
+                    account {
+                        application(OfficialClient.OAuth1a.TwitterForiPhone)
+                        token(account.t4i.at!!, account.t4i.ats!!)
+                    }
+                    emulationMode = EmulationMode.TwitterForiPhone
+                    skipEmulationChecking()
+                }.use {
+                    it.activity.aboutMe().awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS)
+                } ?: continue
+
                 if (activities.isNotEmpty()) {
                     val lastIdOrNull = if (lastId.value > 0) lastId.value else null
                     if (lastIdOrNull != null) {
@@ -95,7 +96,6 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
 
                 delay(account.refresh.activity)
             } catch (e: CancellationException) {
-                twitter.close()
                 break
             } catch (e: PenicillinException) {
                 if (e.error == TwitterErrorMessage.RateLimitExceeded) {

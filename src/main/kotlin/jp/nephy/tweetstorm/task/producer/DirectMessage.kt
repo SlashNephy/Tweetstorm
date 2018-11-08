@@ -1,5 +1,6 @@
 package jp.nephy.tweetstorm.task.producer
 
+import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.tweetstorm.Config
@@ -17,13 +18,13 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
 
-class DirectMessage(account: Config.Account): ProduceTask<JsonModelData>(account) {
+class DirectMessage(account: Config.Account, private val client: PenicillinClient): ProduceTask<JsonModelData>(account) {
     @ExperimentalCoroutinesApi
     override fun channel(context: CoroutineContext, parent: Job) = GlobalScope.produce(context + parent) {
         val lastId = atomic(0L)
         while (isActive) {
             try {
-                val messages = account.twitter.directMessageEvent.list(count = 200).awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS) ?: continue
+                val messages = client.directMessageEvent.list(count = 200).awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS) ?: continue
                 if (messages.result.events.isNotEmpty()) {
                     val lastIdOrNull = if (lastId.value > 0) lastId.value else null
                     if (lastIdOrNull != null) {

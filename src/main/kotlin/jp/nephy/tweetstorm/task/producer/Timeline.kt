@@ -2,6 +2,7 @@ package jp.nephy.tweetstorm.task.producer
 
 import jp.nephy.jsonkt.asMutable
 import jp.nephy.jsonkt.string
+import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.PenicillinException
 import jp.nephy.penicillin.core.PenicillinJsonArrayAction
 import jp.nephy.penicillin.core.TwitterErrorMessage
@@ -20,20 +21,20 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
 
-class ListTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.listTimeline, {
-    account.twitter.list.timeline(listId = account.listId, count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
+class ListTimeline(account: Config.Account, client: PenicillinClient, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.listTimeline, {
+    client.list.timeline(listId = account.listId, count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
-class HomeTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.homeTimeline, {
-    account.twitter.timeline.home(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
+class HomeTimeline(account: Config.Account, client: PenicillinClient, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.homeTimeline, {
+    client.timeline.home(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
-class UserTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.userTimeline, {
-    account.twitter.timeline.user(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
+class UserTimeline(account: Config.Account, client: PenicillinClient, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.userTimeline, {
+    client.timeline.user(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
-class MentionTimeline(account: Config.Account, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.mentionTimeline, {
-    account.twitter.timeline.mention(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
+class MentionTimeline(account: Config.Account, client: PenicillinClient, filter: (Status) -> Boolean = { true }): TimelineTask(account, account.refresh.mentionTimeline, {
+    client.timeline.mention(count = 200, sinceId = it, includeEntities = true, includeRTs = true, includeMyRetweet = true, tweetMode = "extended")
 }, filter)
 
 abstract class TimelineTask(account: Config.Account, private val time: Long, private val source: (lastId: Long?) -> PenicillinJsonArrayAction<Status>, private val filter: (Status) -> Boolean): ProduceTask<JsonObjectData>(account) {
