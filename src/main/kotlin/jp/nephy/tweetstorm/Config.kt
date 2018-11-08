@@ -8,6 +8,7 @@ import jp.nephy.jsonkt.nullableString
 import jp.nephy.jsonkt.parse
 import jp.nephy.penicillin.PenicillinClient
 import jp.nephy.penicillin.core.allIds
+import kotlinx.io.core.use
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -104,20 +105,25 @@ data class Config(override val json: ImmutableJsonObject): JsonModel {
             val activity by lazy { activitySec?.times(1000) ?: activityMs }
         }
 
-        val twitter = PenicillinClient {
-            account {
-                application(ck, cs)
-                token(at, ats)
+        val twitter: PenicillinClient
+            get() = PenicillinClient {
+                account {
+                    application(ck, cs)
+                    token(at, ats)
+                }
+                skipEmulationChecking()
+                httpClient(Apache)
             }
-            skipEmulationChecking()
-            httpClient(Apache)
-        }
 
         val user by lazy {
-            twitter.account.verifyCredentials().complete().result
+            twitter.use {
+                it.account.verifyCredentials().complete().result
+            }
         }
         val friends by lazy {
-            twitter.friend.listIds(count = 5000).untilLast().allIds
+            twitter.use {
+                it.friend.listIds(count = 5000).untilLast().allIds
+            }
         }
     }
 }

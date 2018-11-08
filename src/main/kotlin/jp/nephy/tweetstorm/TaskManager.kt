@@ -29,6 +29,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         it += initialStream
     }
     private val streamsMutex = Mutex()
+    private val twitterClient = account.twitter
 
     fun anyClients(): Boolean {
         return streams.isNotEmpty()
@@ -37,46 +38,46 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     private val tasks = object {
         val produce = mutableListOf<ProduceTask<*>>().also {
             if (account.listId != null) {
-                it += ListTimeline(account)
+                it += ListTimeline(account, twitterClient)
 
                 val listContainsSelf = try {
-                    account.twitter.list.member(listId = account.listId, userId = account.user.id).complete()
+                    twitterClient.list.member(listId = account.listId, userId = account.user.id).complete()
                     true
                 } catch (e: PenicillinException) {
                     false
                 }
 
                 if (listContainsSelf && account.syncList.enabled) {
-                    it += UserTimeline(account) { status ->
+                    it += UserTimeline(account, twitterClient) { status ->
                         status.retweetedStatus == null && status.inReplyToUserId != null && status.inReplyToUserId!! !in account.friends
                     }
-                    it += MentionTimeline(account) { status ->
+                    it += MentionTimeline(account, twitterClient) { status ->
                         status.user.id !in account.friends
                     }
                 } else {
-                    it += UserTimeline(account)
-                    it += MentionTimeline(account)
+                    it += UserTimeline(account, twitterClient)
+                    it += MentionTimeline(account, twitterClient)
                 }
             } else {
-                it += HomeTimeline(account)
-                it += UserTimeline(account) { status ->
+                it += HomeTimeline(account, twitterClient)
+                it += UserTimeline(account, twitterClient) { status ->
                     status.retweetedStatus == null && status.inReplyToUserId != null && status.inReplyToUserId!! !in account.friends
                 }
-                it += MentionTimeline(account) { status ->
+                it += MentionTimeline(account, twitterClient) { status ->
                     status.user.id !in account.friends
                 }
             }
 
             if (account.enableDirectMessage) {
-                it += DirectMessage(account)
+                it += DirectMessage(account, twitterClient)
             }
 
             if (account.filterStream.tracks.isNotEmpty() || account.filterStream.follows.isNotEmpty()) {
-                it += FilterStream(account)
+                it += FilterStream(account, twitterClient)
             }
 
             if (account.enableSampleStream) {
-                it += SampleStream(account)
+                it += SampleStream(account, twitterClient)
             }
 
             if (account.enableActivity && account.t4i.at != null && account.t4i.ats != null) {
@@ -88,7 +89,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
 
         val regular = mutableListOf<RegularTask>().also {
             if (account.syncList.enabled && account.listId != null) {
-                it += SyncList(account)
+                it += SyncList(account, twitterClient)
             }
         }
     }
@@ -185,6 +186,8 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
     }
 
     override fun close() {
+        twitterClient.close()
+
         runBlocking(Dispatchers.Default) {
             masterJob.cancelChildren()
             masterJob.cancelAndJoin()
