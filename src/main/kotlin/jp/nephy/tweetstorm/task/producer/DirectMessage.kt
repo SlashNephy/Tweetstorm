@@ -1,10 +1,15 @@
 package jp.nephy.tweetstorm.task.producer
 
 import jp.nephy.penicillin.PenicillinClient
-import jp.nephy.penicillin.core.PenicillinException
-import jp.nephy.penicillin.core.TwitterErrorMessage
+import jp.nephy.penicillin.core.exceptions.PenicillinException
+import jp.nephy.penicillin.core.exceptions.TwitterErrorMessage
+import jp.nephy.penicillin.endpoints.directMessageEvent
+import jp.nephy.penicillin.extensions.awaitWithTimeout
+import jp.nephy.penicillin.extensions.hasLimit
+import jp.nephy.penicillin.extensions.models.builder.newDirectMessage
+import jp.nephy.penicillin.extensions.models.builder.update
+import jp.nephy.penicillin.extensions.rateLimit
 import jp.nephy.tweetstorm.Config
-import jp.nephy.tweetstorm.builder.newDirectMessage
 import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonModelData
@@ -28,16 +33,20 @@ class DirectMessage(account: Config.Account, private val client: PenicillinClien
                 if (messages.result.events.isNotEmpty()) {
                     val lastIdOrNull = if (lastId.value > 0) lastId.value else null
                     if (lastIdOrNull != null) {
-                        messages.result.events.asSequence().filter { it.type == "message_create" && lastIdOrNull < it.id.toLong() }.toList().reversed().forEach {
+                        messages.result.events.asSequence().filter { it.type == "message_create" && lastIdOrNull < it.id.toLong() }.toList().reversed().forEach { event ->
                             send(JsonModelData(newDirectMessage {
                                 recipient {
-                                    json["id"] = it.messageCreate.target.recipientId.toLong()
+                                    update { 
+                                        it["id"] = event.messageCreate.target.recipientId.toLong()
+                                    }
                                 }
                                 sender {
-                                    json["id"] = it.messageCreate.senderId.toLong()
+                                    update {
+                                        it["id"] = event.messageCreate.senderId.toLong()
+                                    }
                                 }
-                                text { it.messageCreate.messageData.text }
-                                json["entities"] = it.messageCreate.messageData.entities.json
+                                text { event.messageCreate.messageData.text }
+                                entities(event.messageCreate.messageData.entities.json)
                             }))
                         }
                     }
@@ -47,13 +56,13 @@ class DirectMessage(account: Config.Account, private val client: PenicillinClien
                     }
                 }
 
-                if (messages.headers.rateLimit.hasLimit) {
-                    val duration = Duration.between(Instant.now(), messages.headers.rateLimit.resetAt!!.toInstant())
-                    if (messages.headers.rateLimit.remaining!! < 2) {
-                        logger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${messages.headers.rateLimit.resetAt})" }
+                if (messages.rateLimit.hasLimit) {
+                    val duration = Duration.between(Instant.now(), messages.rateLimit.resetAt!!.toInstant())
+                    if (messages.rateLimit.remaining!! < 2) {
+                        logger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${messages.rateLimit.resetAt})" }
                         delay(duration)
-                    } else if (duration.seconds > 3 && messages.headers.rateLimit.remaining!! * account.refresh.directMessage.toDouble() / 1000 / duration.seconds < 1) {
-                        logger.warn { "Rate limit: API calls (/${messages.request.url}) seem to be frequent than expected so consider adjusting `direct_message_refresh` value in config.json. Sleep 10 secs. (${messages.headers.rateLimit.remaining}/${messages.headers.rateLimit.limit}, Reset at ${messages.headers.rateLimit.resetAt})" }
+                    } else if (duration.seconds > 3 && messages.rateLimit.remaining!! * account.refresh.directMessage.toDouble() / 1000 / duration.seconds < 1) {
+                        logger.warn { "Rate limit: API calls (/${messages.request.url}) seem to be frequent than expected so consider adjusting `direct_message_refresh` value in config.json. Sleep 10 secs. (${messages.rateLimit.remaining}/${messages.rateLimit.limit}, Reset at ${messages.rateLimit.resetAt})" }
                         delay(10000)
                     }
                 }

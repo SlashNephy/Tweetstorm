@@ -1,6 +1,8 @@
 package jp.nephy.tweetstorm
 
-import jp.nephy.penicillin.core.PenicillinException
+import jp.nephy.penicillin.core.exceptions.PenicillinException
+import jp.nephy.penicillin.endpoints.lists
+import jp.nephy.penicillin.extensions.complete
 import jp.nephy.tweetstorm.session.AuthenticatedStream
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.RegularTask
@@ -41,7 +43,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
                 it += ListTimeline(account, twitterClient)
 
                 val listContainsSelf = try {
-                    twitterClient.list.member(listId = account.listId, userId = account.user.id).complete()
+                    twitterClient.lists.member(listId = account.listId!!, userId = account.user.id).complete()
                     true
                 } catch (e: PenicillinException) {
                     false
