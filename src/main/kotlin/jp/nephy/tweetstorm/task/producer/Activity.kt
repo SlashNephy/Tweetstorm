@@ -1,17 +1,23 @@
 package jp.nephy.tweetstorm.task.producer
 
-import jp.nephy.jsonkt.asMutable
-import jp.nephy.jsonkt.immutableJsonObject
+import jp.nephy.jsonkt.edit
 import jp.nephy.penicillin.PenicillinClient
-import jp.nephy.penicillin.core.PenicillinException
-import jp.nephy.penicillin.core.TwitterErrorMessage
 import jp.nephy.penicillin.core.emulation.EmulationMode
 import jp.nephy.penicillin.core.emulation.OfficialClient
+import jp.nephy.penicillin.core.exceptions.PenicillinException
+import jp.nephy.penicillin.core.exceptions.TwitterErrorMessage
+import jp.nephy.penicillin.core.session.config.account
+import jp.nephy.penicillin.core.session.config.api
+import jp.nephy.penicillin.endpoints.activity
+import jp.nephy.penicillin.extensions.awaitWithTimeout
+import jp.nephy.penicillin.extensions.createdAt
+import jp.nephy.penicillin.extensions.hasLimit
+import jp.nephy.penicillin.extensions.models.builder.ListEventType
+import jp.nephy.penicillin.extensions.models.builder.StatusEventType
+import jp.nephy.penicillin.extensions.models.builder.UserEventType
+import jp.nephy.penicillin.extensions.models.builder.toEventType
+import jp.nephy.penicillin.extensions.rateLimit
 import jp.nephy.tweetstorm.Config
-import jp.nephy.tweetstorm.builder.ListEventType
-import jp.nephy.tweetstorm.builder.StatusEventType
-import jp.nephy.tweetstorm.builder.UserEventType
-import jp.nephy.tweetstorm.builder.toEventType
 import jp.nephy.tweetstorm.config
 import jp.nephy.tweetstorm.task.ProduceTask
 import jp.nephy.tweetstorm.task.data.JsonData
@@ -36,8 +42,10 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
                         application(OfficialClient.OAuth1a.TwitterForiPhone)
                         token(account.t4i.at!!, account.t4i.ats!!)
                     }
-                    emulationMode = EmulationMode.TwitterForiPhone
-                    skipEmulationChecking()
+                    api {
+                        emulationMode = EmulationMode.TwitterForiPhone
+                        skipEmulationChecking()
+                    }
                 }.use {
                     it.activity.aboutMe().awaitWithTimeout(config.app.apiTimeout, TimeUnit.MILLISECONDS)
                 } ?: continue
@@ -50,7 +58,9 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
                             when (type) {
                                 is StatusEventType, is ListEventType -> {
                                     val (source, targetObject) = event.sources.first().json to event.targets.first().json
-                                    val target = targetObject.asMutable().remove("user")!!.immutableJsonObject
+                                    val target = targetObject.edit {
+                                        it.remove("user")
+                                    }
                                     send(
                                             JsonData(
                                                     "event" to type.key,
@@ -83,13 +93,13 @@ class Activity(account: Config.Account): ProduceTask<JsonData>(account) {
                     }
                 }
 
-                if (activities.headers.rateLimit.hasLimit) {
-                    val duration = Duration.between(Instant.now(), activities.headers.rateLimit.resetAt!!.toInstant())
-                    if (activities.headers.rateLimit.remaining!! < 2) {
-                        logger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${activities.headers.rateLimit.resetAt})" }
+                if (activities.rateLimit.hasLimit) {
+                    val duration = Duration.between(Instant.now(), activities.rateLimit.resetAt!!.toInstant())
+                    if (activities.rateLimit.remaining!! < 2) {
+                        logger.warn { "Rate limit: Mostly exceeded. Sleep ${duration.seconds} secs. (Reset at ${activities.rateLimit.resetAt})" }
                         delay(duration)
-                    } else if (duration.seconds > 3 && activities.headers.rateLimit.remaining!! * account.refresh.activity.toDouble() / duration.seconds / 1000 < 1) {
-                        logger.warn { "Rate limit: API calls (/${activities.request.url}) seem to be frequent than expected so consider adjusting `activity_refresh` value in config.json. Sleep 10 secs. (${activities.headers.rateLimit.remaining}/${activities.headers.rateLimit.limit}, Reset at ${activities.headers.rateLimit.resetAt})" }
+                    } else if (duration.seconds > 3 && activities.rateLimit.remaining!! * account.refresh.activity.toDouble() / duration.seconds / 1000 < 1) {
+                        logger.warn { "Rate limit: API calls (/${activities.request.url}) seem to be frequent than expected so consider adjusting `activity_refresh` value in config.json. Sleep 10 secs. (${activities.rateLimit.remaining}/${activities.rateLimit.limit}, Reset at ${activities.rateLimit.resetAt})" }
                         delay(10000)
                     }
                 }

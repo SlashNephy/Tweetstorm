@@ -202,7 +202,7 @@ fun Route.authByToken() {
     }
 }
 
-suspend fun PipelineContext<Unit, ApplicationCall>.notFound() {
+suspend fun PipelineContext<*, ApplicationCall>.notFound() {
     call.respondHtmlTemplate(NavLayout(), HttpStatusCode.NotFound) {
         navContent {
             div("alert alert-dismissible alert-danger") {

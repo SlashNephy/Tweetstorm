@@ -2,8 +2,8 @@ package jp.nephy.tweetstorm.session
 
 import io.ktor.features.origin
 import io.ktor.request.ApplicationRequest
+import jp.nephy.penicillin.extensions.models.builder.newStatus
 import jp.nephy.tweetstorm.Config
-import jp.nephy.tweetstorm.builder.newStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.io.ByteWriteChannel
 import java.util.*

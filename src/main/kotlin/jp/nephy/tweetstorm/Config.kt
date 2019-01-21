@@ -1,20 +1,25 @@
 package jp.nephy.tweetstorm
 
 import ch.qos.logback.classic.Level
-import io.ktor.client.engine.apache.Apache
-import jp.nephy.jsonkt.ImmutableJsonObject
+import jp.nephy.jsonkt.JsonObject
 import jp.nephy.jsonkt.delegation.*
-import jp.nephy.jsonkt.nullableString
 import jp.nephy.jsonkt.parse
+import jp.nephy.jsonkt.stringOrNull
 import jp.nephy.penicillin.PenicillinClient
-import jp.nephy.penicillin.core.allIds
+import jp.nephy.penicillin.core.session.config.account
+import jp.nephy.penicillin.core.session.config.api
+import jp.nephy.penicillin.endpoints.account
+import jp.nephy.penicillin.endpoints.friends
+import jp.nephy.penicillin.extensions.complete
+import jp.nephy.penicillin.extensions.cursor.allIds
+import jp.nephy.penicillin.extensions.cursor.untilLast
 import kotlinx.io.core.use
 import java.nio.file.Path
 import java.nio.file.Paths
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.Config")
 
-data class Config(override val json: ImmutableJsonObject): JsonModel {
+data class Config(override val json: JsonObject): JsonModel {
     companion object {
         private val defaultConfigPath = Paths.get("config.json")
 
@@ -28,23 +33,23 @@ data class Config(override val json: ImmutableJsonObject): JsonModel {
     }
 
     val wui by lazy { WebUI(json) }
-    data class WebUI(override val json: ImmutableJsonObject): JsonModel {
+    data class WebUI(override val json: JsonObject): JsonModel {
         val host by string { "127.0.0.1" }
         val port by int { 8080 }
         val maxConnections by nullableInt("max_connections")
     }
 
     val app by lazy { App(json) }
-    data class App(override val json: ImmutableJsonObject): JsonModel {
+    data class App(override val json: JsonObject): JsonModel {
         val skipAuth by boolean("skip_auth") { false }
         val apiTimeout by long("api_timeout") { 3000 }
         val parallelism by int("parallelism") { maxOf(1, Runtime.getRuntime().availableProcessors() / 2) }
     }
 
-    val logLevel by lambda("log_level") { Level.toLevel(it.nullableString, Level.INFO)!! }
+    val logLevel by lambda("log_level") { Level.toLevel(it.stringOrNull, Level.INFO)!! }
 
     val accounts by modelList<Account>()
-    data class Account(override val json: ImmutableJsonObject): JsonModel {
+    data class Account(override val json: JsonObject): JsonModel {
         val ck by string
         val cs by string
         val at by string
@@ -58,25 +63,25 @@ data class Config(override val json: ImmutableJsonObject): JsonModel {
         val enableSampleStream by boolean("enable_sample_stream") { false }
 
         val filterStream by lazy { FilterStream(json) }
-        data class FilterStream(override val json: ImmutableJsonObject): JsonModel {
+        data class FilterStream(override val json: JsonObject): JsonModel {
             val tracks by stringList("filter_stream_tracks")
             val follows by longList("filter_stream_follows")
         }
 
         val syncList by lazy { SyncList(json) }
-        data class SyncList(override val json: ImmutableJsonObject): JsonModel {
+        data class SyncList(override val json: JsonObject): JsonModel {
             val enabled by boolean("sync_list_following") { false }
             val includeSelf by boolean("sync_list_include_self") { true }
         }
 
         val t4i by lazy { T4iCredentials(json) }
-        data class T4iCredentials(override val json: ImmutableJsonObject): JsonModel {
+        data class T4iCredentials(override val json: JsonObject): JsonModel {
             val at by nullableString("t4i_at")
             val ats by nullableString("t4i_ats")
         }
 
         val refresh by lazy { RefreshTime(json) }
-        data class RefreshTime(override val json: ImmutableJsonObject): JsonModel {
+        data class RefreshTime(override val json: JsonObject): JsonModel {
             private val listTimelineSec by nullableLong("list_timeline_refresh_sec")
             private val userTimelineSec by nullableLong("user_timeline_refresh_sec")
             private val mentionTimelineSec by nullableLong("mention_timeline_refresh_sec")
@@ -111,8 +116,9 @@ data class Config(override val json: ImmutableJsonObject): JsonModel {
                     application(ck, cs)
                     token(at, ats)
                 }
-                skipEmulationChecking()
-                httpClient(Apache)
+                api {
+                    skipEmulationChecking()
+                }
             }
 
         val user by lazy {
@@ -122,7 +128,9 @@ data class Config(override val json: ImmutableJsonObject): JsonModel {
         }
         val friends by lazy {
             twitter.use {
-                it.friend.listIds(count = 5000).untilLast().allIds
+                runCatching {
+                    it.friends.listIds(count = 5000).untilLast().allIds
+                }.getOrNull().orEmpty()
             }
         }
     }

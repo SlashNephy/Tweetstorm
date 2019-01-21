@@ -3,14 +3,14 @@ package jp.nephy.tweetstorm.session
 import io.ktor.http.*
 import io.ktor.http.content.OutgoingContent
 import io.ktor.request.ApplicationRequest
-import jp.nephy.jsonkt.ImmutableJsonObject
+import jp.nephy.jsonkt.JsonObject
 import jp.nephy.jsonkt.delegation.JsonModel
-import jp.nephy.jsonkt.immutableJsonObjectOf
+import jp.nephy.jsonkt.jsonObjectOf
 import jp.nephy.jsonkt.toJsonString
+import jp.nephy.penicillin.endpoints.parameters.StreamDelimitedBy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.io.ByteWriteChannel
 import kotlinx.coroutines.io.writeStringUtf8
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
@@ -25,13 +25,11 @@ class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> U
     override val contentType = ContentType.Application.Json.withCharset(Charsets.UTF_8)
 
     override suspend fun writeTo(channel: ByteWriteChannel) {
-        runBlocking {
-            writer(channel)
-        }
+        writer(channel)
     }
 
     class Handler(private val channel: ByteWriteChannel, request: ApplicationRequest) {
-        private val delimitedBy = DelimitedBy.byName(request.queryParameters["delimited"].orEmpty())
+        private val delimitedBy = StreamDelimitedBy.byName(request.queryParameters["delimited"].orEmpty())
         private val lock = Mutex()
 
         val isAlive: Boolean
@@ -61,7 +59,7 @@ class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> U
             logger.trace { "Payload = $content" }
             val text = "${content.trim().escapeHtml().escapeUnicode()}$delimiter"
             return when (delimitedBy) {
-                DelimitedBy.Length -> {
+                StreamDelimitedBy.Length -> {
                     writeWrap("${text.length}$delimiter$text")
                 }
                 else -> {
@@ -71,10 +69,10 @@ class StreamContent(private val writer: suspend (channel: ByteWriteChannel) -> U
         }
 
         suspend fun emit(vararg pairs: Pair<String, Any?>): Boolean {
-            return emit(immutableJsonObjectOf(*pairs))
+            return emit(jsonObjectOf(*pairs))
         }
 
-        suspend fun emit(json: ImmutableJsonObject): Boolean {
+        suspend fun emit(json: JsonObject): Boolean {
             return emit(json.toJsonString())
         }
 
