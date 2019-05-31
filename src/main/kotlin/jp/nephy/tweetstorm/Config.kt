@@ -6,18 +6,19 @@ import jp.nephy.jsonkt.delegation.*
 import jp.nephy.jsonkt.parse
 import jp.nephy.jsonkt.stringOrNull
 import jp.nephy.penicillin.PenicillinClient
-import jp.nephy.penicillin.core.session.config.account
-import jp.nephy.penicillin.core.session.config.api
+import jp.nephy.penicillin.core.session.ApiClient
+import jp.nephy.penicillin.core.session.config.*
 import jp.nephy.penicillin.endpoints.account
+import jp.nephy.penicillin.endpoints.account.verifyCredentials
+import jp.nephy.penicillin.endpoints.common.TweetMode
 import jp.nephy.penicillin.endpoints.friends
+import jp.nephy.penicillin.endpoints.friends.listIds
 import jp.nephy.penicillin.extensions.complete
 import jp.nephy.penicillin.extensions.cursor.allIds
 import jp.nephy.penicillin.extensions.cursor.untilLast
 import kotlinx.io.core.use
 import java.nio.file.Path
 import java.nio.file.Paths
-
-private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.Config")
 
 data class Config(override val json: JsonObject): JsonModel {
     companion object {
@@ -32,14 +33,14 @@ data class Config(override val json: JsonObject): JsonModel {
         }
     }
 
-    val wui by lazy { WebUI(json) }
+    val wui by model<WebUI>()
     data class WebUI(override val json: JsonObject): JsonModel {
         val host by string { "127.0.0.1" }
         val port by int { 8080 }
         val maxConnections by nullableInt("max_connections")
     }
 
-    val app by lazy { App(json) }
+    val app by model<App>()
     data class App(override val json: JsonObject): JsonModel {
         val skipAuth by boolean("skip_auth") { false }
         val apiTimeout by long("api_timeout") { 3000 }
@@ -62,62 +63,44 @@ data class Config(override val json: JsonObject): JsonModel {
         val enableFriends by boolean("enable_friends") { true }
         val enableSampleStream by boolean("enable_sample_stream") { false }
 
-        val filterStream by lazy { FilterStream(json) }
+        val filterStream by model<FilterStream>()
         data class FilterStream(override val json: JsonObject): JsonModel {
             val tracks by stringList("filter_stream_tracks")
             val follows by longList("filter_stream_follows")
         }
 
-        val syncList by lazy { SyncList(json) }
+        val syncList by model<SyncList>()
         data class SyncList(override val json: JsonObject): JsonModel {
             val enabled by boolean("sync_list_following") { false }
             val includeSelf by boolean("sync_list_include_self") { true }
         }
 
-        val t4i by lazy { T4iCredentials(json) }
+        val t4i by model<T4iCredentials>()
         data class T4iCredentials(override val json: JsonObject): JsonModel {
             val at by nullableString("t4i_at")
             val ats by nullableString("t4i_ats")
         }
 
-        val refresh by lazy { RefreshTime(json) }
+        val refresh by model<RefreshTime>()
         data class RefreshTime(override val json: JsonObject): JsonModel {
-            private val listTimelineSec by nullableLong("list_timeline_refresh_sec")
-            private val userTimelineSec by nullableLong("user_timeline_refresh_sec")
-            private val mentionTimelineSec by nullableLong("mention_timeline_refresh_sec")
-            private val homeTimelineSec by nullableLong("home_timeline_refresh_sec")
-            private val directMessageSec by nullableLong("direct_message_refresh_sec")
-            private val activitySec by nullableLong("activity_refresh_sec")
-
-            init {
-                if (listTimelineSec != null || userTimelineSec != null || mentionTimelineSec != null || homeTimelineSec != null || directMessageSec != null || activitySec != null) {
-                    logger.warn { "`*_refresh_sec` are deprecated in config.json. Please use `*_refresh` instead." }
-                }
-            }
-
-            private val listTimelineMs by long("list_timeline_refresh") { 1500 }
-            private val userTimelineMs by long("user_timeline_refresh") { 1500 }
-            private val mentionTimelineMs by long("mention_timeline_refresh") { 30000 }
-            private val homeTimelineMs by long("home_timeline_refresh") { 75000 }
-            private val directMessageMs by long("direct_message_refresh") { 75000 }
-            private val activityMs by long("activity_refresh") { 8000 }
-
-            val listTimeline by lazy { listTimelineSec?.times(1000) ?: listTimelineMs }
-            val userTimeline by lazy { userTimelineSec?.times(1000) ?: userTimelineMs }
-            val mentionTimeline by lazy { mentionTimelineSec?.times(1000) ?: mentionTimelineMs }
-            val homeTimeline by lazy { homeTimelineSec?.times(1000) ?: homeTimelineMs }
-            val directMessage by lazy { directMessageSec?.times(1000) ?: directMessageMs }
-            val activity by lazy { activitySec?.times(1000) ?: activityMs }
+            val listTimeline by long("list_timeline") { 1500 }
+            val userTimeline by long("user_timeline") { 1500 }
+            val mentionTimeline by long("mention_timeline") { 30000 }
+            val homeTimeline by long("home_timeline") { 75000 }
+            val directMessage by long("direct_message") { 75000 }
+            val activity by long("activity") { 8000 }
         }
 
-        val twitter: PenicillinClient
+        val twitter: ApiClient
             get() = PenicillinClient {
                 account {
                     application(ck, cs)
                     token(at, ats)
                 }
+                httpClient(Tweetstorm.httpClient)
                 api {
                     skipEmulationChecking()
+                    defaultTweetMode = TweetMode.Extended
                 }
             }
 
@@ -126,6 +109,7 @@ data class Config(override val json: JsonObject): JsonModel {
                 it.account.verifyCredentials().complete().result
             }
         }
+
         val friends by lazy {
             twitter.use {
                 runCatching {

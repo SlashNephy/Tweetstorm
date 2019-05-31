@@ -2,6 +2,7 @@ package jp.nephy.tweetstorm.session
 
 import io.ktor.features.origin
 import io.ktor.request.ApplicationRequest
+import io.ktor.request.host
 import jp.nephy.penicillin.extensions.models.builder.newStatus
 import jp.nephy.tweetstorm.Config
 import kotlinx.coroutines.delay
@@ -11,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.PreAuthenticatedStream")
 
-class PreAuthenticatedStream(channel: ByteWriteChannel, request: ApplicationRequest, val account: Config.Account): Stream<Boolean>(channel, request) {
+class PreAuthenticatedStream(channel: ByteWriteChannel, request: ApplicationRequest, val account: Config.Account): Stream(channel, request) {
     companion object {
         private val streams = CopyOnWriteArrayList<PreAuthenticatedStream>()
 
@@ -43,19 +44,19 @@ class PreAuthenticatedStream(channel: ByteWriteChannel, request: ApplicationRequ
 
         register(this)
 
-        handler.emit(newStatus {
+        writer.emit(newStatus {
             user {
                 name("Tweetstorm Authenticator")
             }
-            text { "To start streaming, access https://userstream.twitter.com/auth/token/$urlToken" }
-            url("https://userstream.twitter.com/auth/token/$urlToken", 27, 101)
+            text { "To start streaming, access https://${request.host()}/auth/token/$urlToken" }
+            url("https://${request.host()}/auth/token/$urlToken", 27, 101)
         })
 
         repeat(300) {
             if (!contain(this)) {
                 return true
             }
-            else if (it % 10 == 0 && !handler.heartbeat()) {
+            else if (it % 10 == 0 && !writer.heartbeat()) {
                 return false
             }
 

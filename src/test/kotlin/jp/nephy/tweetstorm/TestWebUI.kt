@@ -5,6 +5,7 @@ import io.ktor.features.CallLogging
 import io.ktor.routing.Routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import jp.nephy.tweetstorm.web.routing.getTop
 
 private const val host = "localhost"
 private const val port = 8080

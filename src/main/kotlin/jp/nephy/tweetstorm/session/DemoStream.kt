@@ -8,23 +8,26 @@ import kotlinx.coroutines.io.ByteWriteChannel
 
 private val logger = jp.nephy.tweetstorm.logger("Tweetstorm.DemoStream")
 
-class DemoStream(channel: ByteWriteChannel, request: ApplicationRequest): Stream<Unit>(channel, request) {
-    override suspend fun await() {
+class DemoStream(channel: ByteWriteChannel, request: ApplicationRequest): Stream(channel, request) {
+    override suspend fun await(): Boolean {
         logger.info { "Unknown client: ${request.origin.remoteHost} has connected to DemoStream." }
 
         try {
-            handler.emit(newStatus {
+            writer.emit(newStatus {
                 text { "This is demo stream. Since Tweetstorm could not authenticate you, demo stream has started. Please check your config.json." }
             })
 
-            while (handler.isAlive) {
-                if (!handler.heartbeat()) {
+            while (writer.isAlive) {
+                if (!writer.heartbeat()) {
                     break
                 }
+
                 delay(3000)
             }
         } finally {
             logger.info { "Unknown client: ${request.origin.remoteHost} has disconnected from DemoStream." }
         }
+
+        return false
     }
 }

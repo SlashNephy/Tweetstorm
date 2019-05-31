@@ -5,16 +5,13 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.io.ByteWriteChannel
 import java.io.Closeable
 
-abstract class Stream<T>(channel: ByteWriteChannel, val request: ApplicationRequest): Closeable {
+abstract class Stream(channel: ByteWriteChannel, val request: ApplicationRequest): Closeable {
     val job = Job()
-    val handler = StreamContent.Handler(channel, request)
+    val writer = StreamWriter(channel, request)
 
-    abstract suspend fun await(): T
+    abstract suspend fun await(): Boolean
 
     override fun close() {
-        runBlocking(Dispatchers.Default) {
-            job.cancelChildren()
-            job.cancelAndJoin()
-        }
+        job.cancel()
     }
 }
