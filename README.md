@@ -12,7 +12,57 @@ English README is [here](https://github.com/SlashNephy/Tweetstorm/blob/master/RE
 Tweetstorm はクライアントに代わって REST API を呼び出し, 従来の Twitter UserStream API と同等のインターフェイスで配信します。  
 Tweetstorm は 2018/8/23 に完全に廃止された UserStream をできる限り再現することを目標としています。
 
+## Docker
+
+config.json
+```json
+{
+    "host": "0.0.0.0",
+    "port": 8080,
+    "skip_auth": false,
+    "log_level": "info",
+    "accounts": [
+        {
+            "name": "識別名",
+            "ck": "xxx",
+            "cs": "xxx",
+            "at": "xxx-xxx",
+            "ats": "xxx",
+            "list_id": 123456789000000,
+        }
+    ]
+}
+```
+
+docker-compose.yml
+```yaml
+version: '3'
+
+services:
+  tweetstorm:
+    container_name: Tweetstorm
+    build: app
+    restart: always
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./config.json:/app/config.json
+```
+
+別途 nginx でリバースプロキシを設定してください。手順は Wiki にあります。
+
+```shell
+git clone https://github.com/SlashNephy/Tweetstorm app
+
+docker-compose up -d
+docker-compose logs -f
+```
+
+## Demo
+
 feather で実際に使用しているデモ動画は [YouTube](https://www.youtube.com/watch?v=N_Gf2JK3EeM) にアップロードしてあります。
+
+## Structure
 
 ```
                  User Stream API                                          Twitter API
