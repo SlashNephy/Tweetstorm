@@ -9,17 +9,6 @@
             <pattern>[%highlight(%-5level)] [%d{HH:mm:ss.SSS}] [%green(%logger)] %m%n</pattern>
         </encoder>
     </appender>
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/debug_${timestamp}.log</file>
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <charset>UTF-8</charset>
-            <outputPatternAsHeader>false</outputPatternAsHeader>
-            <pattern>[%-5level] [%d{HH:mm:ss.SSS}] [%logger / %thread] %m%n</pattern>
-        </encoder>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>INFO</level>
-        </filter>
-    </appender>
 
     <logger name="ktor.application" level="WARN" />
     <logger name="Tweetstorm" level="INFO" />
@@ -27,6 +16,5 @@
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
-        <appender-ref ref="FILE" />
     </root>
 </configuration>
