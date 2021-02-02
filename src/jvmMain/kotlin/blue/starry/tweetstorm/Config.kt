@@ -20,8 +20,6 @@ import ch.qos.logback.classic.Level
 import java.nio.file.Path
 import java.nio.file.Paths
 
-private val logger = blue.starry.tweetstorm.logger("Tweetstorm.Config")
-
 data class Config(override val json: JsonObject): JsonModel {
     companion object {
         private val defaultConfigPath = Paths.get("config.json")
@@ -39,7 +37,6 @@ data class Config(override val json: JsonObject): JsonModel {
     data class WebUI(override val json: JsonObject): JsonModel {
         val host by string { "127.0.0.1" }
         val port by int { 8080 }
-        val maxConnections by nullableInt("max_connections")
     }
 
     val app by lazy { App(json) }
@@ -48,7 +45,7 @@ data class Config(override val json: JsonObject): JsonModel {
         val apiTimeout by long("api_timeout") { 3000 }
     }
 
-    val logLevel by lambda("log_level", Level.INFO) { Level.toLevel(it.stringOrNull, Level.INFO) }
+    val logLevel: Level by lambda("log_level", Level.INFO) { Level.toLevel(it.stringOrNull, Level.INFO) }
 
     val accounts by modelList { Account(it) }
     data class Account(override val json: JsonObject): JsonModel {

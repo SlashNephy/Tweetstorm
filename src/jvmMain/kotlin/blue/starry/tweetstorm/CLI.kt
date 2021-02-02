@@ -3,6 +3,7 @@ package blue.starry.tweetstorm
 import org.apache.commons.cli.*
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.system.exitProcess
 
 fun parseCommandLine(args: Array<String>): CLIArguments {
     val parser = DefaultParser()
@@ -47,7 +48,7 @@ private fun printHelpAndExit(options: Options) {
         width = 150
     }.printHelp("java -jar tweetstorm-full.jar", header, options, footer, true)
 
-    System.exit(0)
+    exitProcess(0)
 }
 
 data class CLIArguments(val configPath: Path?)
