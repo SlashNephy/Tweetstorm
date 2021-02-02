@@ -1,14 +1,31 @@
-FROM gradle:latest as build
+# Gradle Cache Dependencies Stage
+# This stage caches plugin/project dependencies from *.gradle.kts and gradle.properties.
+# Gradle image erases GRADLE_USER_HOME each layer. So we need COPY GRADLE_USER_HOME.
+# Refer https://stackoverflow.com/a/59022743
+FROM gradle:jdk8 AS cache
+WORKDIR /app
+ENV GRADLE_USER_HOME /app/gradle
+COPY *.gradle.kts gradle.properties /app/
+# Full build if there are any deps changes
+RUN gradle shadowJar --parallel --no-daemon --quiet
+
+# Gradle Build Stage
+# This stage builds and generates fat jar.
+FROM gradle:jdk8 AS build
+WORKDIR /app
+COPY --from=cache /app/gradle /home/gradle/.gradle
+COPY *.gradle.kts gradle.properties /app/
+COPY src/jvmMain/ /app/src/jvmMain/
+# Stop printing Welcome
+RUN gradle -version > /dev/null \
+    && gradle shadowJar --parallel --no-daemon
+
+# Final Stage
+FROM openjdk:8-jre-alpine
 LABEL maintainer="Suzuka Asagiri <suzutan0s2@suzutan.jp>"
 LABEL description="A simple substitute implementation for the Twitter UserStream"
 
-RUN git clone https://github.com/SlashNephy/Tweetstorm
-WORKDIR Tweetstorm
-RUN gradle wrapper && \
-    ./gradlew build
+COPY --from=build /app/build/libs/tweetstorm-all.jar /app/tweetstorm.jar
 
-FROM openjdk:8-alpine
-COPY --from=build /home/gradle/Tweetstorm/build/libs/tweetstorm-full.jar /
-
-ENTRYPOINT [ "java", "-jar", "tweetstorm-full.jar" ]
-
+WORKDIR /app
+ENTRYPOINT ["java", "-jar", "/app/tweetstorm.jar"]
