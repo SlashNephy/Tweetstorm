@@ -1,56 +1,147 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-group = "jp.nephy"
-val ktorVersion = "1.1.1"
+import com.adarshr.gradle.testlogger.theme.ThemeType
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    kotlin("jvm") version "1.3.20-eap-100"
+    kotlin("multiplatform") version "1.4.21"
+    id("com.github.johnrengelman.shadow") version "6.1.0"
+
+    // For testing
+    id("com.adarshr.test-logger") version "2.1.1"
+    id("net.rdrei.android.buildtimetracker") version "0.11.0"
+}
+
+object ThirdpartyVersion {
+    const val Ktor = "1.5.1"
+    const val Penicillin = "6.0.2"
+    const val JsonKt = "6.0.0"
+    const val CommonsCLI = "1.4"
+
+    // For testing
+    const val JUnit = "5.7.0"
+
+    // For logging
+    const val KotlinLogging = "2.0.4"
+    const val Logback = "1.2.3"
+    const val jansi = "1.18"
 }
 
 repositories {
     mavenCentral()
     jcenter()
-    maven(url = "https://kotlin.bintray.com/ktor")
     maven(url = "https://kotlin.bintray.com/kotlinx")
-    maven(url = "https://kotlin.bintray.com/kotlin-eap")
-    maven(url = "https://dl.bintray.com/nephyproject/penicillin")
+    maven(url = "https://dl.bintray.com/starry-blue-sky/stable")
 }
 
-dependencies {
-    compile(kotlin("stdlib-jdk8"))
-
-    compile("io.ktor:ktor-server-netty:$ktorVersion")
-    compile("io.ktor:ktor-html-builder:$ktorVersion")
-    compile("io.ktor:ktor-client-apache:$ktorVersion")
-
-    compile("jp.nephy:penicillin:4.0.5-eap-7")
+kotlin {
+    jvm {
+        compilations.all {
+            kotlinOptions.jvmTarget = "1.8"
+        }
+    }
     
-    compile("commons-cli:commons-cli:1.4")
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(kotlin("stdlib-common"))
 
-    compile("io.github.microutils:kotlin-logging:1.6.22")
-    compile("ch.qos.logback:logback-core:1.2.3")
-    compile("ch.qos.logback:logback-classic:1.2.3")
-    compile("org.fusesource.jansi:jansi:1.17.1")
+                implementation("blue.starry:penicillin:${ThirdpartyVersion.Penicillin}")
+                implementation("blue.starry:jsonkt:${ThirdpartyVersion.JsonKt}")
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(kotlin("test-common"))
+                implementation(kotlin("test-annotations-common"))
+            }
+        }
+
+        named("jvmMain") {
+            dependencies {
+                implementation("io.ktor:ktor-server-netty:${ThirdpartyVersion.Ktor}")
+                implementation("io.ktor:ktor-html-builder:${ThirdpartyVersion.Ktor}")
+                implementation("io.ktor:ktor-client-apache:${ThirdpartyVersion.Ktor}")
+
+                implementation("commons-cli:commons-cli:${ThirdpartyVersion.CommonsCLI}")
+
+                // For logging
+                implementation("io.github.microutils:kotlin-logging:${ThirdpartyVersion.KotlinLogging}")
+                implementation("ch.qos.logback:logback-core:${ThirdpartyVersion.Logback}")
+                implementation("ch.qos.logback:logback-classic:${ThirdpartyVersion.Logback}")
+                implementation("org.fusesource.jansi:jansi:${ThirdpartyVersion.jansi}")
+            }
+        }
+        named("jvmTest") {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(kotlin("test-junit5"))
+                implementation("org.junit.jupiter:junit-jupiter:${ThirdpartyVersion.JUnit}")
+            }
+        }
+    }
+
+    targets.all {
+        compilations.all {
+            kotlinOptions {
+                apiVersion = "1.4"
+                languageVersion = "1.4"
+                verbose = true
+            }
+        }
+    }
+
+    sourceSets.all {
+        languageSettings.progressiveMode = true
+        languageSettings.apply {
+            useExperimentalAnnotation("kotlin.Experimental")
+        }
+    }
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
-    kotlinOptions.freeCompilerArgs = kotlinOptions.freeCompilerArgs + "-Xuse-experimental=kotlin.Experimental"
+/*
+ * Tests
+ */
+
+buildtimetracker {
+    reporters {
+        register("summary") {
+            options["ordered"] = "true"
+            options["barstyle"] = "ascii"
+            options["shortenTaskNames"] = "false"
+        }
+    }
 }
 
-val fatJar = task("fatJar", type = Jar::class) {
-    baseName = "${project.name}-full"
+testlogger {
+    theme = ThemeType.MOCHA
+}
+
+tasks.named<Test>("jvmTest") {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}
+
+task<JavaExec>("run") {
+    dependsOn("build")
+
+    group = "application"
+    main = "blue.starry.tweetstorm.MainKt"
+    classpath(configurations["jvmRuntimeClasspath"], tasks["jvmJar"])
+}
+
+// workaround for Kotlin/Multiplatform + Shadow issue
+// Refer https://github.com/johnrengelman/shadow/issues/484#issuecomment-549137315.
+task<ShadowJar>("shadowJar") {
+    group = "shadow"
+    dependsOn("jvmJar")
+
     manifest {
-        attributes["Main-Class"] = "jp.nephy.tweetstorm.MainKt"
+        attributes("Main-Class" to "blue.starry.tweetstorm.MainKt")
     }
+    archiveClassifier.set("all")
 
-    @Suppress("IMPLICIT_CAST_TO_ANY")
-    from(configurations.runtime.map { if (it.isDirectory) it else zipTree(it) })
-    with(tasks["jar"] as CopySpec)
-}
-
-tasks {
-    "build" {
-        dependsOn(fatJar)
-    }
+    val jvmMain = kotlin.jvm().compilations.getByName("main")
+    from(jvmMain.output)
+    configurations.add(jvmMain.compileDependencyFiles as Configuration)
 }

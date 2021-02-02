@@ -1,8 +1,5 @@
 .idea/
 .gradle/
-gradle/
 build/
-out/
 
-logs/
 config.json
