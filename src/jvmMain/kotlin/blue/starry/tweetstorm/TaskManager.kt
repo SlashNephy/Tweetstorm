@@ -122,7 +122,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         target.startTargetedTasks()
 
         for (task in tasks.produce) {
-            GlobalScope.launch(dispatcher + masterJob) {
+            GlobalScope.launch(masterJob) {
                 task.logger.debug { "ProduceTask: ${task.javaClass.simpleName} started." }
 
                 while (isActive) {
@@ -141,7 +141,7 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
         }
 
         for (task in tasks.regular) {
-            GlobalScope.launch(dispatcher + masterJob) {
+            GlobalScope.launch(masterJob) {
                 while (isActive) {
                     task.logger.debug { "RegularTask: ${task.javaClass.simpleName} started." }
 
@@ -163,11 +163,11 @@ class TaskManager(initialStream: AuthenticatedStream): Closeable {
 
     @ExperimentalCoroutinesApi
     private suspend fun AuthenticatedStream.startTargetedTasks() {
-        GlobalScope.launch(dispatcher + masterJob) {
+        GlobalScope.launch(masterJob) {
             select {
                 if (account.enableFriends) {
                     val task = Friends(this@startTargetedTasks)
-                    launch(dispatcher + job) {
+                    launch(job) {
                         task.channel(coroutineContext, masterJob).onReceive { data ->
                             if (data.emit(handler)) {
                                 task.logger.trace { "${data.javaClass.simpleName} (${task.javaClass.simpleName}) emitted successfully." }

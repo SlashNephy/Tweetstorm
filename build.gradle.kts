@@ -57,9 +57,9 @@ kotlin {
 
         named("jvmMain") {
             dependencies {
-                implementation("io.ktor:ktor-server-netty:${ThirdpartyVersion.Ktor}")
+                implementation("io.ktor:ktor-server-cio:${ThirdpartyVersion.Ktor}")
                 implementation("io.ktor:ktor-html-builder:${ThirdpartyVersion.Ktor}")
-                implementation("io.ktor:ktor-client-apache:${ThirdpartyVersion.Ktor}")
+                implementation("io.ktor:ktor-client-cio:${ThirdpartyVersion.Ktor}")
 
                 implementation("commons-cli:commons-cli:${ThirdpartyVersion.CommonsCLI}")
 

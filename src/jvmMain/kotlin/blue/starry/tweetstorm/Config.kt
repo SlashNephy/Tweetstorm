@@ -46,7 +46,6 @@ data class Config(override val json: JsonObject): JsonModel {
     data class App(override val json: JsonObject): JsonModel {
         val skipAuth by boolean("skip_auth") { false }
         val apiTimeout by long("api_timeout") { 3000 }
-        val parallelism by int("parallelism") { maxOf(1, Runtime.getRuntime().availableProcessors() / 2) }
     }
 
     val logLevel by lambda("log_level", Level.INFO) { Level.toLevel(it.stringOrNull, Level.INFO) }

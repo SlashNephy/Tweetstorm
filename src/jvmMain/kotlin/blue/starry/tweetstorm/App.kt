@@ -10,9 +10,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.response.respond
 import io.ktor.routing.Routing
-import io.ktor.server.netty.NettyApplicationEngine
-
-private val logger = blue.starry.tweetstorm.logger("Tweetstorm.App")
 
 fun Application.module() {
     install(RequestLogging)
@@ -38,15 +35,4 @@ fun Application.module() {
             notFound()
         }
     }
-}
-
-fun NettyApplicationEngine.Configuration.config() {
-    responseWriteTimeoutSeconds = 60
-
-    val maxConnectionsOverride = maxOf(config.wui.maxConnections ?: 2 * config.accounts.size, 2)
-    connectionGroupSize = maxConnectionsOverride
-    workerGroupSize = maxConnectionsOverride
-    callGroupSize = 2 * (maxConnectionsOverride - 1)
-
-    logger.debug { "parallelism = $parallelism, connectionGroupSize = workerGroupSize = $connectionGroupSize, callGroupSize = $callGroupSize" }
 }
