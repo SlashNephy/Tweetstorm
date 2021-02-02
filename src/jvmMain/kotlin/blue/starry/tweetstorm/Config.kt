@@ -49,7 +49,7 @@ data class Config(override val json: JsonObject): JsonModel {
         val parallelism by int("parallelism") { maxOf(1, Runtime.getRuntime().availableProcessors() / 2) }
     }
 
-    val logLevel by lambda("log_level", Level.INFO) { Level.toLevel(it.stringOrNull, Level.INFO)!! }
+    val logLevel by lambda("log_level", Level.INFO) { Level.toLevel(it.stringOrNull, Level.INFO) }
 
     val accounts by modelList { Account(it) }
     data class Account(override val json: JsonObject): JsonModel {
@@ -76,37 +76,13 @@ data class Config(override val json: JsonObject): JsonModel {
             val includeSelf by boolean("sync_list_include_self") { true }
         }
 
-        val t4i by lazy { T4iCredentials(json) }
-        data class T4iCredentials(override val json: JsonObject): JsonModel {
-            val at by nullableString("t4i_at")
-            val ats by nullableString("t4i_ats")
-        }
-
         val refresh by lazy { RefreshTime(json) }
         data class RefreshTime(override val json: JsonObject): JsonModel {
-            private val listTimelineSec by nullableLong("list_timeline_refresh_sec")
-            private val userTimelineSec by nullableLong("user_timeline_refresh_sec")
-            private val mentionTimelineSec by nullableLong("mention_timeline_refresh_sec")
-            private val homeTimelineSec by nullableLong("home_timeline_refresh_sec")
-            private val directMessageSec by nullableLong("direct_message_refresh_sec")
-
-            init {
-                if (listTimelineSec != null || userTimelineSec != null || mentionTimelineSec != null || homeTimelineSec != null || directMessageSec != null) {
-                    logger.warn { "`*_refresh_sec` are deprecated in config.json. Please use `*_refresh` instead." }
-                }
-            }
-
-            private val listTimelineMs by long("list_timeline_refresh") { 1500 }
-            private val userTimelineMs by long("user_timeline_refresh") { 1500 }
-            private val mentionTimelineMs by long("mention_timeline_refresh") { 30000 }
-            private val homeTimelineMs by long("home_timeline_refresh") { 75000 }
-            private val directMessageMs by long("direct_message_refresh") { 75000 }
-
-            val listTimeline by lazy { listTimelineSec?.times(1000) ?: listTimelineMs }
-            val userTimeline by lazy { userTimelineSec?.times(1000) ?: userTimelineMs }
-            val mentionTimeline by lazy { mentionTimelineSec?.times(1000) ?: mentionTimelineMs }
-            val homeTimeline by lazy { homeTimelineSec?.times(1000) ?: homeTimelineMs }
-            val directMessage by lazy { directMessageSec?.times(1000) ?: directMessageMs }
+            val listTimeline by long("list_timeline_refresh") { 1500 }
+            val userTimeline by long("user_timeline_refresh") { 1500 }
+            val mentionTimeline by long("mention_timeline_refresh") { 30000 }
+            val homeTimeline by long("home_timeline_refresh") { 75000 }
+            val directMessage by long("direct_message_refresh") { 75000 }
         }
 
         val twitter: ApiClient
