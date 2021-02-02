@@ -1,6 +1,5 @@
 package blue.starry.tweetstorm
 
-import ch.qos.logback.classic.Level
 import blue.starry.jsonkt.JsonObject
 import blue.starry.jsonkt.delegation.*
 import blue.starry.jsonkt.parseObject
@@ -8,7 +7,6 @@ import blue.starry.jsonkt.stringOrNull
 import blue.starry.penicillin.PenicillinClient
 import blue.starry.penicillin.core.session.ApiClient
 import blue.starry.penicillin.core.session.config.account
-import blue.starry.penicillin.core.session.config.api
 import blue.starry.penicillin.core.session.config.application
 import blue.starry.penicillin.core.session.config.token
 import blue.starry.penicillin.endpoints.account
@@ -18,9 +16,9 @@ import blue.starry.penicillin.endpoints.friends.listIds
 import blue.starry.penicillin.extensions.complete
 import blue.starry.penicillin.extensions.cursor.allIds
 import blue.starry.penicillin.extensions.cursor.untilLast
+import ch.qos.logback.classic.Level
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.io.path.readText
 
 private val logger = blue.starry.tweetstorm.logger("Tweetstorm.Config")
 
@@ -51,7 +49,7 @@ data class Config(override val json: JsonObject): JsonModel {
         val parallelism by int("parallelism") { maxOf(1, Runtime.getRuntime().availableProcessors() / 2) }
     }
 
-    val logLevel by lambda("log_level") { Level.toLevel(it.stringOrNull, Level.INFO)!! }
+    val logLevel by lambda("log_level", Level.INFO) { Level.toLevel(it.stringOrNull, Level.INFO)!! }
 
     val accounts by modelList { Account(it) }
     data class Account(override val json: JsonObject): JsonModel {
