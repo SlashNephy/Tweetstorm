@@ -21,7 +21,7 @@ RUN gradle -version > /dev/null \
     && gradle shadowJar --parallel --no-daemon
 
 # Final Stage
-FROM openjdk:8-jre-alpine
+FROM openjdk:17-jdk-alpine
 LABEL maintainer="Suzuka Asagiri <suzutan0s2@suzutan.jp>"
 LABEL description="A simple substitute implementation for the Twitter UserStream"
 
