@@ -1,20 +1,36 @@
-[![Kotlin 1.4.21](https://img.shields.io/badge/Kotlin-1.4.21-blue.svg)](http://kotlinlang.org)
-[![Licence](https://img.shields.io/github/license/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/blob/master/LICENSE)
-[![GitHub release](https://img.shields.io/github/release/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/releases)
-[![Docker Build Status](https://shields.beevelop.com/docker/pulls/slashnephy/tweetstorm.svg)](https://hub.docker.com/r/slashnephy/tweetstorm)
-[![Github All Releases](https://img.shields.io/github/downloads/SlashNephy/TweetStorm/total.svg)](https://github.com/SlashNephy/Tweetstorm/releases)
-[![GitHub issues](https://img.shields.io/github/issues/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/SlashNephy/Tweetstorm.svg)](https://github.com/SlashNephy/Tweetstorm/pulls)
+# Tweetstorm: UserStream API の簡単な代替実装
+
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.4.30-blue)](https://kotlinlang.org)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/SlashNephy/tweetstorm)](https://github.com/SlashNephy/tweetstorm/releases)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/SlashNephy/tweetstorm/Docker)](https://hub.docker.com/r/slashnephy/tweetstorm)
+[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/slashnephy/tweetstorm)](https://hub.docker.com/r/slashnephy/tweetstorm)
+[![Docker Pulls](https://img.shields.io/docker/pulls/slashnephy/tweetstorm)](https://hub.docker.com/r/slashnephy/tweetstorm)
+[![license](https://img.shields.io/github/license/SlashNephy/tweetstorm)](https://github.com/SlashNephy/tweetstorm/blob/master/LICENSE)
+[![issues](https://img.shields.io/github/issues/SlashNephy/tweetstorm)](https://github.com/SlashNephy/tweetstorm/issues)
+[![pull requests](https://img.shields.io/github/issues-pr/SlashNephy/tweetstorm)](https://github.com/SlashNephy/tweetstorm/pulls)
 
 English README is [here](https://github.com/SlashNephy/Tweetstorm/blob/master/README_EN.md).  
 
-# Tweetstorm: UserStream API の簡単な代替実装  
 Tweetstorm はクライアントに代わって REST API を呼び出し, 従来の Twitter UserStream API と同等のインターフェイスで配信します。  
 Tweetstorm は 2018/8/23 に完全に廃止された UserStream をできる限り再現することを目標としています。
 
+---
+
 ## Docker
 
-config.json
+環境構築が容易なので Docker で導入することをおすすめします。
+
+現在のベースイメージは `openjdk:17-jdk-alpine` です。いくつかフレーバーを用意しています。
+
+- `slashnephy/tweetstorm:latest`  
+  master ブランチへのプッシュの際にビルドされます。安定しています。
+- `slashnephy/tweetstorm:dev`  
+  dev ブランチへのプッシュの際にビルドされます。開発版のため, 不安定である可能性があります。
+- `slashnephy/tweetstorm:<version>`  
+  GitHub 上のリリースに対応します。
+
+`config.json`
+
 ```json
 {
     "host": "0.0.0.0",
@@ -34,28 +50,36 @@ config.json
 }
 ```
 
-docker-compose.yml
+`docker-compose.yml`
+
 ```yaml
 version: '3'
 
 services:
   tweetstorm:
     container_name: Tweetstorm
-    build: app
+    image: slashnephy:tweetstorm:latest
     restart: always
     ports:
-      - '8080:8080'
+      - 8080:8080/tcp
     volumes:
       - ./config.json:/app/config.json
 ```
 
 別途 nginx でリバースプロキシを設定してください。手順は Wiki にあります。
 
-```shell
-git clone https://github.com/SlashNephy/Tweetstorm app
+```console
+# イメージ更新
+docker pull slashnephy/saya:latest
 
+# 起動
 docker-compose up -d
+
+# ログ表示
 docker-compose logs -f
+
+# 停止
+docker-compose down
 ```
 
 ## Demo
